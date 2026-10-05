@@ -1,0 +1,33 @@
+services:
+  waha:
+    image: devlikeapro/waha:${WAHA_TAG}
+    ports: ["127.0.0.1:${WAHA_HOST_PORT}:3000"]
+    environment:
+      WHATSAPP_DEFAULT_ENGINE: NOWEB
+      WHATSAPP_HOOK_URL: http://n8n:5678/webhook/waha
+      WHATSAPP_HOOK_EVENTS: message.any
+      WAHA_DASHBOARD_ENABLED: "true"
+      WAHA_DASHBOARD_USERNAME: ${WAHA_DASHBOARD_USER}
+      WAHA_DASHBOARD_PASSWORD: ${WAHA_DASHBOARD_PASSWORD}
+      WHATSAPP_API_KEY: ${WAHA_API_KEY}
+    volumes:
+      - waha_sessions:/app/.sessions
+    restart: unless-stopped
+
+  n8n:
+    image: n8nio/n8n:${N8N_TAG}
+    ports: ["127.0.0.1:5678:5678"]
+    environment:
+      N8N_SECURE_COOKIE: "false" # local only (plain http)
+      N8N_EDITOR_BASE_URL: http://localhost:5678
+      WEBHOOK_URL: http://localhost:5678/
+      GENERIC_TIMEZONE: ${TZ}
+      TZ: ${TZ}
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+    volumes:
+      - n8n_data:/home/node/.n8n
+    restart: unless-stopped
+
+volumes:
+  waha_sessions:
+  n8n_data:

@@ -1,0 +1,15 @@
+.env
+.env.*
+!.env.example
+node_modules/
+dist/
+.claude/state/
+.claude/scheduled_tasks.lock
+.claude/settings.local.json
+.DS_Store
+
+# n8n / gateway runtime data (never commit)
+n8n-data/
+gateway-data/
+credentials*.json
+docs

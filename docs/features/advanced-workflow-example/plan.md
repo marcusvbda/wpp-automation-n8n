@@ -16,11 +16,11 @@ workflows are created/validated; `workflows/*.json` are CLI exports of them.
 | 2     | Persistent stores and credentials                  | n8n-workflows | none             | S    | DONE       |
 | 3     | Shared error workflow                              | n8n-workflows | 1                | S    | DONE       |
 | 4     | Ingress sub-workflow (filter + normalize)          | n8n-workflows | 1, 3             | S    | DONE       |
-| 5     | Guards sub-workflow (fromMe, direct, allow-list, dedupe, rate limit) | n8n-workflows | 1, 2, 3 | M | PENDING |
-| 6     | Reply sub-workflow (AI Agent + Postgres memory)    | n8n-workflows | 1, 2, 3          | S    | PENDING    |
-| 7     | Send sub-workflow (seen → typing → delay → send)   | n8n-workflows | 1, 2, 3          | S    | PENDING    |
+| 5     | Guards sub-workflow (fromMe, direct, allow-list, dedupe, rate limit) | n8n-workflows | 1, 2, 3 | M | BLOCKED (owner: `Postgres chatbot`) |
+| 6     | Reply sub-workflow (AI Agent + Postgres memory)    | n8n-workflows | 1, 2, 3          | S    | BLOCKED (owner: `Postgres chatbot`) |
+| 7     | Send sub-workflow (seen → typing → delay → send)   | n8n-workflows | 1, 2, 3          | S    | BLOCKED (owner: `Postgres chatbot`) |
 | 8     | Authenticated inbound webhook (compose + env)      | n8n-workflows | none             | S    | DONE       |
-| 9     | Orchestrator workflow with config node             | n8n-workflows | 4, 5, 6, 7, 8    | M    | PENDING    |
+| 9     | Orchestrator workflow with config node             | n8n-workflows | 4, 5, 6, 7, 8    | M    | PENDING (also needs `WAHA webhook secret`) |
 | 10    | Publish, smoke tests, verification and report      | n8n-workflows | 9                | M    | PENDING    |
 
 ## Audit — 2026-10-06
@@ -378,7 +378,7 @@ normalized message, or says why it isn't one.
 
 ### Phase 5 — Guards sub-workflow
 
-Status: PENDING
+Status: BLOCKED — owner action: credential `Postgres chatbot` doesn't exist yet (checked 2026-10-06; creating it with `.env` secrets is blocked for the agent by Claude Code's permission classifier). Postgres: host `postgres`, port `5432`, database `n8n`, user `n8n`, password = `N8N_DB_PASSWORD`, SSL disable.
 Role: n8n-workflows · Depends on: 1, 2, 3 · Covers: AC2, AC3, AC4, AC13, AC14, AC16 · Size: M
 Spec: §4 item 3, F2, F5, R1, R8
 
@@ -428,7 +428,7 @@ answered, writing state only for messages that reach the dedupe step.
 
 ### Phase 6 — Reply sub-workflow (AI Agent + Postgres memory)
 
-Status: PENDING
+Status: BLOCKED — owner action: credential `Postgres chatbot` doesn't exist yet (checked 2026-10-06; creating it with `.env` secrets is blocked for the agent by Claude Code's permission classifier). Postgres: host `postgres`, port `5432`, database `n8n`, user `n8n`, password = `N8N_DB_PASSWORD`, SSL disable.
 Role: n8n-workflows · Depends on: 1, 2, 3 · Covers: AC1, AC5, AC6, AC8, AC15, AC16 · Size: S
 Spec: §4 item 4, F4, R3, R4, R6
 
@@ -477,7 +477,7 @@ persistent memory, or a clean failure object (never throws for LLM errors).
 
 ### Phase 7 — Send sub-workflow (seen → typing → delay → send)
 
-Status: PENDING
+Status: BLOCKED — owner action: credential `Postgres chatbot` doesn't exist yet (checked 2026-10-06; creating it with `.env` secrets is blocked for the agent by Claude Code's permission classifier). Postgres: host `postgres`, port `5432`, database `n8n`, user `n8n`, password = `N8N_DB_PASSWORD`, SSL disable.
 Role: n8n-workflows · Depends on: 1, 2, 3 · Covers: AC7, AC8, AC12, AC14, AC16 · Size: S
 Spec: §4 item 5, F1 step 5, F6, R5, R8
 

@@ -1,0 +1,357 @@
+{
+  "updatedAt": "2026-10-06T13:19:07.426Z",
+  "createdAt": "2026-10-06T13:17:24.335Z",
+  "id": "Rl28yJygAKG6NBRv",
+  "name": "chatbot-waha-car-rental-reply",
+  "description": null,
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "b2000000-0000-4000-8000-000000000001",
+      "name": "When called by orchestrator",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "inputSource": "passthrough"
+      }
+    },
+    {
+      "id": "b2000000-0000-4000-8000-000000000002",
+      "name": "Generate reply",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "onError": "continueErrorOutput",
+      "position": [
+        240,
+        0
+      ],
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.text }}",
+        "options": {
+          "systemMessage": "={{ $json.config.businessRules }}"
+        }
+      }
+    },
+    {
+      "id": "b2000000-0000-4000-8000-000000000003",
+      "name": "OpenAI chat model",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        160,
+        260
+      ],
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('When called by orchestrator').first().json.config.llmModel }}"
+        },
+        "options": {
+          "temperature": "={{ $('When called by orchestrator').first().json.config.llmTemperature }}",
+          "maxTokens": "={{ $('When called by orchestrator').first().json.config.llmMaxOutputTokens }}",
+          "maxRetries": 0
+        }
+      },
+      "credentials": {
+        "openAiApi": {
+          "id": "KFZp3oDrOgr20VBL",
+          "name": "OpenAI account"
+        }
+      }
+    },
+    {
+      "id": "b2000000-0000-4000-8000-000000000004",
+      "name": "Conversation memory",
+      "type": "@n8n/n8n-nodes-langchain.memoryPostgresChat",
+      "typeVersion": 1.4,
+      "position": [
+        360,
+        260
+      ],
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('When called by orchestrator').first().json.chatId }}",
+        "tableName": "chatbot_chat_histories",
+        "contextWindowLength": "={{ Math.ceil($('When called by orchestrator').first().json.config.memoryWindow / 2) }}"
+      },
+      "credentials": {
+        "postgres": {
+          "id": "qBw06fsYVSnHDIYZ",
+          "name": "Postgres account"
+        }
+      }
+    },
+    {
+      "id": "b2000000-0000-4000-8000-000000000005",
+      "name": "Has reply text?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        640,
+        -60
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "c2000000-0000-4000-8000-000000000001",
+              "leftValue": "={{ typeof $json.output === 'string' ? $json.output.trim() : '' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "b2000000-0000-4000-8000-000000000006",
+      "name": "Return reply",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        900,
+        -120
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e2000000-0000-4000-8000-0000000000060",
+              "name": "ok",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "e2000000-0000-4000-8000-0000000000061",
+              "name": "reply",
+              "value": "={{ $json.output }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "b2000000-0000-4000-8000-000000000007",
+      "name": "Return empty reply failure",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        900,
+        40
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e2000000-0000-4000-8000-0000000000070",
+              "name": "ok",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "e2000000-0000-4000-8000-0000000000071",
+              "name": "error",
+              "value": "LLM returned no reply",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "b2000000-0000-4000-8000-000000000008",
+      "name": "Return failure",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        900,
+        240
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e2000000-0000-4000-8000-00000000080",
+              "name": "ok",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "e2000000-0000-4000-8000-00000000081",
+              "name": "error",
+              "value": "={{ String($json.error?.message ?? $json.error ?? 'LLM returned no reply') }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "b2000000-0000-4000-8000-000000000011",
+      "name": "Sticky 1 Generate reply",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        100,
+        -160
+      ],
+      "parameters": {
+        "content": "## 1 · Generate reply\nAI Agent with the OpenAI chat model and Postgres memory (no tools). Model, temperature, max tokens and memory window all come from `config`; the OpenAI client does not retry.",
+        "height": 560,
+        "width": 720,
+        "color": 7
+      }
+    },
+    {
+      "id": "b2000000-0000-4000-8000-000000000012",
+      "name": "Sticky 2 Result",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        840,
+        -200
+      ],
+      "parameters": {
+        "content": "## 2 · Result\nSuccess returns `{ ok: true, reply }`. An empty reply or an LLM error returns `{ ok: false, error }`; the error carries the provider's error message only (no user text is added).",
+        "height": 600,
+        "width": 360,
+        "color": 4
+      }
+    },
+    {
+      "id": "b2000000-0000-4000-8000-000000000013",
+      "name": "Sticky Contract",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -20,
+        -440
+      ],
+      "parameters": {
+        "content": "## Contract\nInput: `{ config, chatId, text }` (config uses businessRules, llmModel, llmTemperature, llmMaxOutputTokens, memoryWindow).\nOutput: `{ ok: true, reply }` or `{ ok: false, error }`. Never throws for LLM errors.\nMemory is keyed by chatId in table `chatbot_chat_histories` and written only on success (n8n saves the turn after the agent succeeds). No retries.",
+        "height": 240,
+        "width": 1220,
+        "color": 5
+      }
+    }
+  ],
+  "connections": {
+    "When called by orchestrator": {
+      "main": [
+        [
+          {
+            "node": "Generate reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Generate reply": {
+      "main": [
+        [
+          {
+            "node": "Has reply text?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "OpenAI chat model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Generate reply",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Conversation memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Generate reply",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has reply text?": {
+      "main": [
+        [
+          {
+            "node": "Return reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return empty reply failure",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "errorWorkflow": "FF0x666oa1bfHLDI",
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": true
+  },
+  "staticData": null,
+  "meta": null,
+  "nodeGroups": [],
+  "versionId": "bb7f85cb-6bdf-4f5a-8207-f0ef33f5f6b0",
+  "activeVersionId": null,
+  "versionCounter": 2,
+  "triggerCount": 0,
+  "sourceWorkflowId": null,
+  "tags": [],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}

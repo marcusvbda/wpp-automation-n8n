@@ -17,7 +17,7 @@ workflows are created/validated; `workflows/*.json` are CLI exports of them.
 | 3     | Shared error workflow                              | n8n-workflows | 1                | S    | DONE       |
 | 4     | Ingress sub-workflow (filter + normalize)          | n8n-workflows | 1, 3             | S    | DONE       |
 | 5     | Guards sub-workflow (fromMe, direct, allow-list, dedupe, rate limit) | n8n-workflows | 1, 2, 3 | M | DONE |
-| 6     | Reply sub-workflow (AI Agent + Postgres memory)    | n8n-workflows | 1, 2, 3          | S    | IN_PROGRESS |
+| 6     | Reply sub-workflow (AI Agent + Postgres memory)    | n8n-workflows | 1, 2, 3          | S    | DONE        |
 | 7     | Send sub-workflow (seen → typing → delay → send)   | n8n-workflows | 1, 2, 3          | S    | IN_PROGRESS |
 | 8     | Authenticated inbound webhook (compose + env)      | n8n-workflows | none             | S    | DONE       |
 | 9     | Orchestrator workflow with config node             | n8n-workflows | 4, 5, 6, 7, 8    | M    | PENDING (also needs `WAHA webhook secret`) |
@@ -429,7 +429,8 @@ answered, writing state only for messages that reach the dedupe step.
 
 ### Phase 6 — Reply sub-workflow (AI Agent + Postgres memory)
 
-Status: IN_PROGRESS
+Status: DONE
+Evidence: created via n8n-mcp, id **`Rl28yJygAKG6NBRv`**, inactive, errorWorkflow set; agent v3.1 + lmChatOpenAi v1.3 (model as id-mode expression on `config.llmModel`, temperature/maxTokens from config, `maxRetries: 0`) + memoryPostgresChat v1.4 (customKey = chatId, table `chatbot_chat_histories`, window `ceil(memoryWindow/2)` — the window counts user+AI pairs); agent `continueErrorOutput` → `{ ok: false, error }`; `n8n_validate_workflow` 0 errors 0 warnings; no literal config values; export clean (no PII). Review APPROVED; hardening applied: sub-nodes read the trigger with `.first()`, error wrapped in `String()`. Not executed yet (first LLM call happens in Phase 10).
 Role: n8n-workflows · Depends on: 1, 2, 3 · Covers: AC1, AC5, AC6, AC8, AC15, AC16 · Size: S
 Spec: §4 item 4, F4, R3, R4, R6
 

@@ -1,0 +1,1038 @@
+{
+  "updatedAt": "2026-10-06T13:43:29.443Z",
+  "createdAt": "2026-10-06T13:43:29.443Z",
+  "id": "3zFS5yZDOZFAAhfM",
+  "name": "chatbot-waha-car-rental",
+  "description": null,
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "e9000001-0000-4000-8000-000000000001",
+      "name": "Receive WAHA event",
+      "webhookId": "d8dddf0c-f764-4853-b363-4a188b7a40e6",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2.1,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "waha",
+        "authentication": "headerAuth",
+        "responseMode": "onReceived",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Nr0CK7GM4izONDhE",
+          "name": "WAHA webhook secret"
+        }
+      }
+    },
+    {
+      "id": "e9000018-0000-4000-8000-000000000018",
+      "name": "Load workflow config",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        250,
+        300
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e9000002-0000-4000-8000-000000000002",
+              "name": "wahaBaseUrl",
+              "value": "http://waha:3000",
+              "type": "string"
+            },
+            {
+              "id": "e9000003-0000-4000-8000-000000000003",
+              "name": "llmModel",
+              "value": "gpt-4o-mini",
+              "type": "string"
+            },
+            {
+              "id": "e9000004-0000-4000-8000-000000000004",
+              "name": "llmTemperature",
+              "value": 0.4,
+              "type": "number"
+            },
+            {
+              "id": "e9000005-0000-4000-8000-000000000005",
+              "name": "llmMaxOutputTokens",
+              "value": 300,
+              "type": "number"
+            },
+            {
+              "id": "e9000006-0000-4000-8000-000000000006",
+              "name": "memoryWindow",
+              "value": 20,
+              "type": "number"
+            },
+            {
+              "id": "e9000007-0000-4000-8000-000000000007",
+              "name": "typingCharsPerSecond",
+              "value": 12,
+              "type": "number"
+            },
+            {
+              "id": "e9000008-0000-4000-8000-000000000008",
+              "name": "typingMinSeconds",
+              "value": 2,
+              "type": "number"
+            },
+            {
+              "id": "e9000009-0000-4000-8000-000000000009",
+              "name": "typingMaxSeconds",
+              "value": 12,
+              "type": "number"
+            },
+            {
+              "id": "e9000010-0000-4000-8000-000000000010",
+              "name": "typingJitterSeconds",
+              "value": 1,
+              "type": "number"
+            },
+            {
+              "id": "e9000011-0000-4000-8000-000000000011",
+              "name": "seenDelaySeconds",
+              "value": 1,
+              "type": "number"
+            },
+            {
+              "id": "e9000012-0000-4000-8000-000000000012",
+              "name": "perChatMinIntervalSeconds",
+              "value": 3,
+              "type": "number"
+            },
+            {
+              "id": "e9000013-0000-4000-8000-000000000013",
+              "name": "restrictToAllowList",
+              "value": false,
+              "type": "boolean"
+            },
+            {
+              "id": "e9000014-0000-4000-8000-000000000014",
+              "name": "allowedChatIds",
+              "value": "<TEST_CHAT_ID>",
+              "type": "string"
+            },
+            {
+              "id": "e9000015-0000-4000-8000-000000000015",
+              "name": "unsupportedTypeReply",
+              "value": "Por enquanto eu só consigo ler mensagens de texto. Pode me escrever o que precisa? 🙂",
+              "type": "string"
+            },
+            {
+              "id": "e9000016-0000-4000-8000-000000000016",
+              "name": "failureReply",
+              "value": "Tive um probleminha aqui. Pode repetir sua mensagem em instantes?",
+              "type": "string"
+            },
+            {
+              "id": "e9000017-0000-4000-8000-000000000017",
+              "name": "businessRules",
+              "value": "You are \"Duda\", the virtual assistant of DriveEasy Rentals, a fictional car rental company.\n\nStyle\n- Friendly and concise: 1-3 short sentences per message.\n- Reply in the customer's language; default to Brazilian Portuguese.\n- At most one emoji per message.\n\nBranches\n- Downtown: open Mon-Sat 08:00-20:00; closed on public holidays.\n- Airport: open daily 06:00-23:00.\n\nFleet and daily rates (BRL)\n- Economy hatch: R$ 119\n- Compact sedan: R$ 149\n- SUV: R$ 229\n- Minivan (7 seats): R$ 289\n- Pickup: R$ 259\n\nRequirements\n- Driver's license held for 2+ years.\n- Minimum age 21 (25 for SUV, Minivan and Pickup).\n- Credit card in the driver's name for the deposit.\n\nDeposit\n- R$ 800 (Economy and Compact), R$ 1,500 (others); released within 7 days after return.\n\nMileage and fuel\n- 200 km/day included; R$ 0.80 per extra km.\n- Return the car with the same fuel level, or pay the refuel plus a R$ 40 fee.\n\nExtras\n- Child seat R$ 25/day; extra driver R$ 30/day; full insurance R$ 45/day.\n\nCancellation\n- Free up to 24 h before pickup; after that, 1 day's rate.\n\nBookings\n- You cannot book or take payment. For a booking, collect the pickup city, dates, car category and the customer's name, then say a human agent will confirm shortly. Never say a booking is confirmed.\n\nOut of scope\n- Claims, accidents, legal questions or price negotiation: hand over to a human agent (phone line: see our website).\n\nNever invent facts that are not listed here. If you are unsure, say a human agent will help.",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      }
+    },
+    {
+      "id": "e9000021-0000-4000-8000-000000000021",
+      "name": "Build ingress input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        500,
+        300
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e9000019-0000-4000-8000-000000000019",
+              "name": "config",
+              "value": "={{ $('Load workflow config').first().json }}",
+              "type": "object"
+            },
+            {
+              "id": "e9000020-0000-4000-8000-000000000020",
+              "name": "body",
+              "value": "={{ $('Receive WAHA event').first().json.body }}",
+              "type": "object"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      }
+    },
+    {
+      "id": "e9000022-0000-4000-8000-000000000022",
+      "name": "Run ingress",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        750,
+        300
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "bxDRnRLTIloMn7tY",
+          "mode": "id"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "e9000024-0000-4000-8000-000000000024",
+      "name": "Is accepted message?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1000,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e9000023-0000-4000-8000-000000000023",
+              "leftValue": "={{ $json.accepted === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "e9000027-0000-4000-8000-000000000027",
+      "name": "Build guards input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1250,
+        300
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e9000025-0000-4000-8000-000000000025",
+              "name": "config",
+              "value": "={{ $('Load workflow config').first().json }}",
+              "type": "object"
+            },
+            {
+              "id": "e9000026-0000-4000-8000-000000000026",
+              "name": "message",
+              "value": "={{ $('Run ingress').first().json.message }}",
+              "type": "object"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      }
+    },
+    {
+      "id": "e9000028-0000-4000-8000-000000000028",
+      "name": "Run guards",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        1500,
+        300
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "6pSuha5uHeqK2Ll2",
+          "mode": "id"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "e9000030-0000-4000-8000-000000000030",
+      "name": "Passed guards?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1750,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e9000029-0000-4000-8000-000000000029",
+              "leftValue": "={{ $json.pass === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "e9000032-0000-4000-8000-000000000032",
+      "name": "Is text message?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2000,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e9000031-0000-4000-8000-000000000031",
+              "leftValue": "={{ $('Run ingress').first().json.message.type === 'text' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "e9000036-0000-4000-8000-000000000036",
+      "name": "Build reply input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        2250,
+        150
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e9000033-0000-4000-8000-000000000033",
+              "name": "config",
+              "value": "={{ $('Load workflow config').first().json }}",
+              "type": "object"
+            },
+            {
+              "id": "e9000034-0000-4000-8000-000000000034",
+              "name": "chatId",
+              "value": "={{ $('Run ingress').first().json.message.chatId }}",
+              "type": "string"
+            },
+            {
+              "id": "e9000035-0000-4000-8000-000000000035",
+              "name": "text",
+              "value": "={{ $('Run ingress').first().json.message.text }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      }
+    },
+    {
+      "id": "e9000037-0000-4000-8000-000000000037",
+      "name": "Run reply",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        2500,
+        150
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "Rl28yJygAKG6NBRv",
+          "mode": "id"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "e9000039-0000-4000-8000-000000000039",
+      "name": "Reply generated?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2750,
+        150
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e9000038-0000-4000-8000-000000000038",
+              "leftValue": "={{ $json.ok === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "e9000045-0000-4000-8000-000000000045",
+      "name": "Prepare LLM reply",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        3000,
+        50
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e9000040-0000-4000-8000-000000000040",
+              "name": "config",
+              "value": "={{ $('Load workflow config').first().json }}",
+              "type": "object"
+            },
+            {
+              "id": "e9000041-0000-4000-8000-000000000041",
+              "name": "session",
+              "value": "={{ $('Run ingress').first().json.message.session }}",
+              "type": "string"
+            },
+            {
+              "id": "e9000042-0000-4000-8000-000000000042",
+              "name": "chatId",
+              "value": "={{ $('Run ingress').first().json.message.chatId }}",
+              "type": "string"
+            },
+            {
+              "id": "e9000043-0000-4000-8000-000000000043",
+              "name": "text",
+              "value": "={{ $json.reply }}",
+              "type": "string"
+            },
+            {
+              "id": "e9000044-0000-4000-8000-000000000044",
+              "name": "meta",
+              "value": "={{ { replyKind: 'llm' } }}",
+              "type": "object"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      }
+    },
+    {
+      "id": "e9000051-0000-4000-8000-000000000051",
+      "name": "Prepare failure reply",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        3000,
+        250
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e9000046-0000-4000-8000-000000000046",
+              "name": "config",
+              "value": "={{ $('Load workflow config').first().json }}",
+              "type": "object"
+            },
+            {
+              "id": "e9000047-0000-4000-8000-000000000047",
+              "name": "session",
+              "value": "={{ $('Run ingress').first().json.message.session }}",
+              "type": "string"
+            },
+            {
+              "id": "e9000048-0000-4000-8000-000000000048",
+              "name": "chatId",
+              "value": "={{ $('Run ingress').first().json.message.chatId }}",
+              "type": "string"
+            },
+            {
+              "id": "e9000049-0000-4000-8000-000000000049",
+              "name": "text",
+              "value": "={{ $('Load workflow config').first().json.failureReply }}",
+              "type": "string"
+            },
+            {
+              "id": "e9000050-0000-4000-8000-000000000050",
+              "name": "meta",
+              "value": "={{ { replyKind: 'failure', llmError: String($json.error ?? '') } }}",
+              "type": "object"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      }
+    },
+    {
+      "id": "e9000057-0000-4000-8000-000000000057",
+      "name": "Prepare unsupported reply",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        3000,
+        450
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e9000052-0000-4000-8000-000000000052",
+              "name": "config",
+              "value": "={{ $('Load workflow config').first().json }}",
+              "type": "object"
+            },
+            {
+              "id": "e9000053-0000-4000-8000-000000000053",
+              "name": "session",
+              "value": "={{ $('Run ingress').first().json.message.session }}",
+              "type": "string"
+            },
+            {
+              "id": "e9000054-0000-4000-8000-000000000054",
+              "name": "chatId",
+              "value": "={{ $('Run ingress').first().json.message.chatId }}",
+              "type": "string"
+            },
+            {
+              "id": "e9000055-0000-4000-8000-000000000055",
+              "name": "text",
+              "value": "={{ $('Load workflow config').first().json.unsupportedTypeReply }}",
+              "type": "string"
+            },
+            {
+              "id": "e9000056-0000-4000-8000-000000000056",
+              "name": "meta",
+              "value": "={{ { replyKind: 'unsupported' } }}",
+              "type": "object"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      }
+    },
+    {
+      "id": "e9000058-0000-4000-8000-000000000058",
+      "name": "Run send",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        3250,
+        250
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "value": "yBMIvg47q3KjM4BK",
+          "mode": "id"
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "e9000060-0000-4000-8000-000000000060",
+      "name": "Was reply sent?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3500,
+        250
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e9000059-0000-4000-8000-000000000059",
+              "leftValue": "={{ $json.sent === true }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "e9000061-0000-4000-8000-000000000061",
+      "name": "Fail on send error",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        3750,
+        400
+      ],
+      "parameters": {
+        "errorMessage": "=WAHA send failed: {{ $json.error }}"
+      }
+    },
+    {
+      "id": "e9000063-0000-4000-8000-000000000063",
+      "name": "Was it a failure reply?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3750,
+        150
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "e9000062-0000-4000-8000-000000000062",
+              "leftValue": "={{ $json.meta?.replyKind === 'failure' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "e9000064-0000-4000-8000-000000000064",
+      "name": "Fail on LLM error",
+      "type": "n8n-nodes-base.stopAndError",
+      "typeVersion": 1,
+      "position": [
+        4000,
+        100
+      ],
+      "parameters": {
+        "errorMessage": "=LLM reply failed: {{ $json.meta.llmError }}"
+      }
+    },
+    {
+      "id": "e9000065-0000-4000-8000-000000000065",
+      "name": "Sticky Keys",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        200,
+        -120
+      ],
+      "parameters": {
+        "content": "## Keys\nOnly non-secret settings live here (the workflow's env). The WAHA API key, the OpenAI key and the webhook secret are n8n credentials: `WAHA account`, `OpenAI account`, `WAHA webhook secret`. Edit `businessRules` to change the bot's behaviour.",
+        "height": 360,
+        "width": 500,
+        "color": 4
+      }
+    },
+    {
+      "id": "e9000066-0000-4000-8000-000000000066",
+      "name": "Sticky 1 Ingress",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        440,
+        380
+      ],
+      "parameters": {
+        "content": "## 1 · Ingress\nNormalizes the WAHA event; stops quietly if it is not an accepted message.",
+        "height": 200,
+        "width": 560,
+        "color": 7
+      }
+    },
+    {
+      "id": "e9000067-0000-4000-8000-000000000067",
+      "name": "Sticky 2 Guards",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1190,
+        380
+      ],
+      "parameters": {
+        "content": "## 2 · Guards\nSkips own messages, groups, rate-limited chats and anything outside the allow-list.",
+        "height": 200,
+        "width": 660,
+        "color": 7
+      }
+    },
+    {
+      "id": "e9000068-0000-4000-8000-000000000068",
+      "name": "Sticky 3 Reply",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1940,
+        -60
+      ],
+      "parameters": {
+        "content": "## 3 · Reply\nText messages get an LLM reply; other types get the unsupported-type reply (no LLM, no memory).",
+        "height": 300,
+        "width": 900,
+        "color": 7
+      }
+    },
+    {
+      "id": "e9000069-0000-4000-8000-000000000069",
+      "name": "Sticky 4 Send",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2940,
+        -60
+      ],
+      "parameters": {
+        "content": "## 4 · Send\nEvery reply kind is prepared in the same shape and sent by one sub-workflow.",
+        "height": 620,
+        "width": 440,
+        "color": 7
+      }
+    },
+    {
+      "id": "e9000070-0000-4000-8000-000000000070",
+      "name": "Sticky 5 Outcome",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3440,
+        -60
+      ],
+      "parameters": {
+        "content": "## 5 · Outcome\nA failed send or an LLM failure fails the execution once, so the error workflow runs once.",
+        "height": 560,
+        "width": 700,
+        "color": 7
+      }
+    }
+  ],
+  "connections": {
+    "Receive WAHA event": {
+      "main": [
+        [
+          {
+            "node": "Load workflow config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load workflow config": {
+      "main": [
+        [
+          {
+            "node": "Build ingress input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build ingress input": {
+      "main": [
+        [
+          {
+            "node": "Run ingress",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run ingress": {
+      "main": [
+        [
+          {
+            "node": "Is accepted message?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is accepted message?": {
+      "main": [
+        [
+          {
+            "node": "Build guards input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build guards input": {
+      "main": [
+        [
+          {
+            "node": "Run guards",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run guards": {
+      "main": [
+        [
+          {
+            "node": "Passed guards?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Passed guards?": {
+      "main": [
+        [
+          {
+            "node": "Is text message?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is text message?": {
+      "main": [
+        [
+          {
+            "node": "Build reply input",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare unsupported reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build reply input": {
+      "main": [
+        [
+          {
+            "node": "Run reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run reply": {
+      "main": [
+        [
+          {
+            "node": "Reply generated?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Reply generated?": {
+      "main": [
+        [
+          {
+            "node": "Prepare LLM reply",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare failure reply",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare LLM reply": {
+      "main": [
+        [
+          {
+            "node": "Run send",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare failure reply": {
+      "main": [
+        [
+          {
+            "node": "Run send",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare unsupported reply": {
+      "main": [
+        [
+          {
+            "node": "Run send",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Run send": {
+      "main": [
+        [
+          {
+            "node": "Was reply sent?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Was reply sent?": {
+      "main": [
+        [
+          {
+            "node": "Was it a failure reply?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Fail on send error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Was it a failure reply?": {
+      "main": [
+        [
+          {
+            "node": "Fail on LLM error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "errorWorkflow": "FF0x666oa1bfHLDI",
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "staticData": null,
+  "meta": null,
+  "nodeGroups": [],
+  "versionId": "70ec0a7a-506d-4411-96ea-ebcbb9fa52be",
+  "activeVersionId": null,
+  "versionCounter": 1,
+  "triggerCount": 0,
+  "sourceWorkflowId": null,
+  "tags": [],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}

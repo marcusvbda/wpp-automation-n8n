@@ -20,7 +20,7 @@ workflows are created/validated; `workflows/*.json` are CLI exports of them.
 | 6     | Reply sub-workflow (AI Agent + Postgres memory)    | n8n-workflows | 1, 2, 3          | S    | DONE        |
 | 7     | Send sub-workflow (seen → typing → delay → send)   | n8n-workflows | 1, 2, 3          | S    | DONE        |
 | 8     | Authenticated inbound webhook (compose + env)      | n8n-workflows | none             | S    | DONE       |
-| 9     | Orchestrator workflow with config node             | n8n-workflows | 4, 5, 6, 7, 8    | M    | PENDING (also needs `WAHA webhook secret`) |
+| 9     | Orchestrator workflow with config node             | n8n-workflows | 4, 5, 6, 7, 8    | M    | DONE        |
 | 10    | Publish, smoke tests, verification and report      | n8n-workflows | 9                | M    | PENDING    |
 
 ## Audit — 2026-10-06
@@ -563,7 +563,8 @@ Header Auth credential to check it.
 
 ### Phase 9 — Orchestrator workflow with config node
 
-Status: PENDING
+Status: DONE
+Evidence: created via n8n-mcp, id **`3zFS5yZDOZFAAhfM`**, inactive, never executed; Webhook v2.1 POST `waha` + Header Auth `WAHA webhook secret` (Nr0CK7GM4izONDhE), respond on received; "Load workflow config" with the 16 fields (D5 `restrictToAllowList` false, D7 no `wahaSession`); helper Sets "Build ingress/guards/reply input" (Execute Workflow v1.4 can't map fields for passthrough sub-workflows); Stop and Error for F4/F6; `validate_workflow` + `n8n_validate_workflow` 0 errors 0 warnings; AC9: config literals only in "Load workflow config"; `<TEST_CHAT_ID>` placeholder; no `wahaSession`; no PII; `code-reviewer` APPROVED. Blockers on the way (owner fixed): broken `.env` line 30, then a truncated `N8N_API_KEY` (regenerated). Runtime unknowns for Phase 10: passthrough via Execute Workflow v1.4 without `workflowInputs`; sub-workflows must be published to be called in production (n8n docs).
 Role: n8n-workflows · Depends on: 4, 5, 6, 7, 8 · Covers: AC1, AC2, AC8, AC9, AC10, AC11, AC12, AC15, AC16 · Size: M
 Spec: §2 R2, R3, R7; §3 config table + business rules; §4 item 1, F3, F4, F6; §5
 

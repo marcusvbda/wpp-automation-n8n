@@ -21,7 +21,7 @@ workflows are created/validated; `workflows/*.json` are CLI exports of them.
 | 7     | Send sub-workflow (seen → typing → delay → send)   | n8n-workflows | 1, 2, 3          | S    | DONE        |
 | 8     | Authenticated inbound webhook (compose + env)      | n8n-workflows | none             | S    | DONE       |
 | 9     | Orchestrator workflow with config node             | n8n-workflows | 4, 5, 6, 7, 8    | M    | DONE        |
-| 10    | Publish, smoke tests, verification and report      | n8n-workflows | 9                | M    | IN_PROGRESS|
+| 10    | Publish, smoke tests, verification and report      | n8n-workflows | 9                | M    | DONE       |
 
 ## Audit — 2026-10-06
 
@@ -645,7 +645,33 @@ behind an authenticated webhook, with the single config node.
 
 ### Phase 10 — Publish, smoke tests, verification and report
 
-Status: IN_PROGRESS
+Status: DONE
+Evidence (2026-10-06): published the 4 sub-workflows (required: production calls need published sub-workflows) and the orchestrator via n8n-mcp `activateWorkflow`. Final gate: `jq empty workflows/*.json` OK; `docker compose config -q` OK; `n8n_validate_workflow` 0 errors 0 warnings on all six; AC9 literals only in "Load workflow config"; `<TEST_CHAT_ID>` placeholder in the repo (real test chat id lives only in the live n8n config); no `wahaSession`; no PII (`.shared` stripped); secrets grep → only benign hits (`maxTokens` names, `@s.whatsapp.net` suffix in the Ingress code). No final `code-reviewer` pass over the whole diff (owner asked to finalize; every phase was reviewed individually).
+
+| AC | Result | Evidence |
+| -- | ------ | -------- |
+| AC1 | PASS | live: "Qual o valor da diária do SUV?" → one reply, R$ 229 |
+| AC2 | PASS | synthetic group payload → `not-direct`, no WAHA/LLM call, 0 dedupe/rate rows |
+| AC3 | PASS | synthetic `status@broadcast`, `@newsletter` → `not-direct`; `fromMe` → `from-me` (also every live echo of the bot's replies) |
+| AC4 | PASS | same `messageId` posted twice → one reply, second `duplicate` |
+| AC5 | PASS | "Qual categoria eu escolhi?" → SUV, again after `docker compose restart n8n n8n-worker` |
+| AC6 | PARTIAL | memory keyed by `chatId` (customKey); only one test chat available, not tested with two live chats |
+| AC7 | PASS | send execution: seen → wait 1.0 s → start typing → 1.5 s → stop typing → sendText (26 chars → 2.2 s ± 1) |
+| AC8 | PASS | `typingMinSeconds` 4 in the config node only → typing 4.1 s; restored to 2 |
+| AC9 | PASS | grep/jq gate above |
+| AC10 | PASS | SUV R$ 229; "Vocês alugam barco?" → only cars, a human agent can help |
+| AC11 | PASS | asked name/city/dates/category, said a human agent will confirm, never confirmed |
+| AC12 | PASS | image → `unsupportedTypeReply` once with typing, no Reply sub-workflow run |
+| AC13 | PASS | synthetic fake direct chat with `restrictToAllowList` true → `not-allowed`, nothing sent/written |
+| AC14 | PASS | live "a" + "b" → one reply, "b" `rate-limited` |
+| AC15 | NOT VERIFIED LIVE | invalid `llmModel` set, but the owner's test message never reached n8n (no execution after it); path reviewed statically (agent `continueErrorOutput` → failureReply → Stop and Error once; `maxRetries: 0`). Model restored to `gpt-4o-mini` |
+| AC16 | PASS | six files in `workflows/`, sticky headers in each, `errorWorkflow` = `FF0x666oa1bfHLDI` on all five chatbot workflows |
+
+Owner change during the run (supersedes D5): the paired WAHA number is the owner's personal WhatsApp, so the allow-list is **on** (`restrictToAllowList: true`) with one test chat entered live only; the repo keeps `<TEST_CHAT_ID>`. Exports must keep scrubbing `allowedChatIds` (and `.shared`).
+
+Proposed spec `Deviation:` notes (spec not edited): (1) webhook auth lives in the orchestrator's Webhook node (Header Auth), not in the Ingress sub-workflow; (2) guard order is fromMe → direct → allow-list → dedupe → rate limit (no rows for non-allowed chats); (3) D6: rate-limit slot claimed atomically on accept and re-stamped after the send; (4) D7: replies use the inbound `session`, `wahaSession` removed, `session` added to the normalized shape; (5) protocol messages (delete/edit) are ignored as non-user messages; (6) credentials reused: `OpenAI account`, `WAHA account` (wahaApi), `Postgres account`; (7) sub-workflows are published (n8n 2.x requirement).
+
+Open findings / ideas not built: dedupe table has no retention; a user who answers within 3 s of the bot is dropped silently (spec F5 — consider a lower `perChatMinIntervalSeconds` or the spec's debounce idea); no per-chat lock; AC15 and AC6 need one more live check.
 Role: n8n-workflows (+ owner on the test phone) · Depends on: 9 · Covers: AC1–AC16 · Size: M
 Spec: §6 all ACs, §4 F1–F7, §5
 

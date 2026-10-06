@@ -1,10 +1,10 @@
 {
-  "updatedAt": "2026-10-06T12:36:04.583Z",
+  "updatedAt": "2026-10-06T13:45:45.826Z",
   "createdAt": "2026-10-06T12:34:29.683Z",
   "id": "bxDRnRLTIloMn7tY",
   "name": "chatbot-waha-car-rental-ingress",
   "description": null,
-  "active": false,
+  "active": true,
   "isArchived": false,
   "nodes": [
     {
@@ -222,9 +222,8 @@
   "staticData": null,
   "meta": null,
   "nodeGroups": [],
-  "pinData": null,
   "versionId": "90ea8034-030d-4ba5-9e44-e4f410877b25",
-  "activeVersionId": null,
+  "activeVersionId": "90ea8034-030d-4ba5-9e44-e4f410877b25",
   "versionCounter": 2,
   "triggerCount": 0,
   "sourceWorkflowId": null,

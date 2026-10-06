@@ -1,10 +1,10 @@
 {
-  "updatedAt": "2026-10-06T13:22:06.562Z",
+  "updatedAt": "2026-10-06T13:45:52.780Z",
   "createdAt": "2026-10-06T13:19:23.811Z",
   "id": "yBMIvg47q3KjM4BK",
   "name": "chatbot-waha-car-rental-send",
   "description": null,
-  "active": false,
+  "active": true,
   "isArchived": false,
   "nodes": [
     {
@@ -451,7 +451,7 @@
   "meta": null,
   "nodeGroups": [],
   "versionId": "f836bd81-6599-4ad8-bc34-c4fb4d188b75",
-  "activeVersionId": null,
+  "activeVersionId": "f836bd81-6599-4ad8-bc34-c4fb4d188b75",
   "versionCounter": 3,
   "triggerCount": 0,
   "sourceWorkflowId": null,

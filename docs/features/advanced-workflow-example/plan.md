@@ -21,7 +21,7 @@ workflows are created/validated; `workflows/*.json` are CLI exports of them.
 | 7     | Send sub-workflow (seen → typing → delay → send)   | n8n-workflows | 1, 2, 3          | S    | DONE        |
 | 8     | Authenticated inbound webhook (compose + env)      | n8n-workflows | none             | S    | DONE       |
 | 9     | Orchestrator workflow with config node             | n8n-workflows | 4, 5, 6, 7, 8    | M    | DONE        |
-| 10    | Publish, smoke tests, verification and report      | n8n-workflows | 9                | M    | PENDING    |
+| 10    | Publish, smoke tests, verification and report      | n8n-workflows | 9                | M    | IN_PROGRESS|
 
 ## Audit — 2026-10-06
 
@@ -645,7 +645,7 @@ behind an authenticated webhook, with the single config node.
 
 ### Phase 10 — Publish, smoke tests, verification and report
 
-Status: PENDING
+Status: IN_PROGRESS
 Role: n8n-workflows (+ owner on the test phone) · Depends on: 9 · Covers: AC1–AC16 · Size: M
 Spec: §6 all ACs, §4 F1–F7, §5
 

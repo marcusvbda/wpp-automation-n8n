@@ -12,8 +12,8 @@ workflows are created/validated; `workflows/*.json` are CLI exports of them.
 
 | Phase | Title                                              | Role          | Depends on       | Size | Status     |
 | ----- | -------------------------------------------------- | ------------- | ---------------- | ---- | ---------- |
-| 1     | Enable the n8n MCP for the executor                | n8n-workflows | none             | S    | PENDING    |
-| 2     | Persistent stores and credentials                  | n8n-workflows | none             | S    | PENDING    |
+| 1     | Enable the n8n MCP for the executor                | n8n-workflows | none             | S    | BLOCKED (owner: API key) |
+| 2     | Persistent stores and credentials                  | n8n-workflows | none             | S    | DONE       |
 | 3     | Shared error workflow                              | n8n-workflows | 1                | S    | PENDING    |
 | 4     | Ingress sub-workflow (filter + normalize)          | n8n-workflows | 1, 3             | S    | PENDING    |
 | 5     | Guards sub-workflow (fromMe, direct, allow-list, dedupe, rate limit) | n8n-workflows | 1, 2, 3 | M | PENDING |
@@ -191,7 +191,7 @@ proposes the spec note.
 
 ### Phase 1 — Enable the n8n MCP for the executor
 
-Status: PENDING
+Status: BLOCKED — owner action: `N8N_API_KEY` is empty in `.env` (checked 2026-10-06), so the MCP can't authenticate; MCP tools load only after a Claude Code restart. Edits applied and valid (`jq empty .claude/settings.json` OK; agent tools + `maxTurns: 30` set), left uncommitted. To finish: create the key in n8n (Settings > n8n API) → `N8N_API_KEY=` in `.env` → restart Claude Code → rerun phase 1 (only the `n8n_health_check`/`n8n_list_workflows` checks remain).
 Role: n8n-workflows (config edit; can be done by the orchestrator) · Depends on: none · Covers: — (enabler) · Size: S
 Spec: owner instruction ("usando o mcp do n8n"), §2 R7
 
@@ -220,7 +220,8 @@ Spec: owner instruction ("usando o mcp do n8n"), §2 R7
 
 ### Phase 2 — Persistent stores and credentials
 
-Status: PENDING
+Status: DONE
+Evidence: `scripts/sql/chatbot-car-rental.sql` applied 3× as role `n8n` (runs 2–3: "already exists, skipping"); PKs `chatbot_processed_messages_pkey`, `chatbot_chat_reply_state_pkey` present, tables owned by `n8n` in `public`; README line added; `code-reviewer` APPROVED. Credentials (2026-10-06): existing `OpenAI account` (openAiApi) and `WAHA account` (wahaApi, sends `X-Api-Key` via generic `authenticate`) are reused instead of creating duplicates; **`Postgres chatbot` is still missing — owner prerequisite, checked at the start of Phases 5–7.**
 Role: n8n-workflows · Depends on: none · Covers: AC4, AC5, AC14 (stores) · Size: S
 Spec: §3 Persistent stores, A3, R4, R8
 
@@ -249,8 +250,11 @@ the credentials every later phase references exist with fixed names.
 - Credentials the **owner** creates in the n8n UI (exact names; executor never
   sees values):
   - `Postgres chatbot` — Postgres; host `postgres`, port `5432`, database `n8n`, user `n8n`, password = `N8N_DB_PASSWORD`, SSL disabled.
-  - `WAHA API key` — Header Auth; name `X-Api-Key`, value = `WAHA_API_KEY`.
-  - `OpenAI API` — OpenAI; the owner's API key.
+  - ~~`WAHA API key`~~ → reuse existing `WAHA account` (`wahaApi`) as the
+    HTTP Request predefined credential type; fall back to a Header Auth
+    `WAHA API key` (name `X-Api-Key`) only if the HTTP Request node can't use
+    `wahaApi` (Phase 7 checks).
+  - ~~`OpenAI API`~~ → reuse existing `OpenAI account` (`openAiApi`).
 - One line in `README.md` under "Persistence" pointing to the SQL file and the
   apply command.
 
@@ -436,7 +440,7 @@ persistent memory, or a clean failure object (never throws for LLM errors).
   - AI Agent "Generate reply": prompt source "define below", text
     `{{ $json.text }}`, system message `{{ $json.config.businessRules }}`,
     `onError: continueErrorOutput`.
-    - Chat model sub-node "OpenAI chat model" (credential `OpenAI API`): model
+    - Chat model sub-node "OpenAI chat model" (credential `OpenAI account`): model
       `{{ $('When called by orchestrator').item.json.config.llmModel }}`
       (expression/by-id mode), temperature `config.llmTemperature`, max tokens
       `config.llmMaxOutputTokens`, **`maxRetries: 0`**, default timeout.
@@ -481,7 +485,7 @@ rate-limit row, and report failure instead of retrying.
 - Workflow/file: `chatbot-waha-car-rental-send` → `workflows/chatbot-waha-car-rental-send.json`.
 - Input: `{ config, chatId, text, meta }`. Output: `{ sent, error?, meta }`.
 - Nodes, left to right (all WAHA calls: HTTP Request, POST, JSON body,
-  generic credential Header Auth `WAHA API key`, `retryOnFail: false`;
+  predefined credential `WAHA account` (`wahaApi`; Header Auth `WAHA API key` fallback, see Phase 2), `retryOnFail: false`;
   URL `{{ config.wahaBaseUrl }}/api/<endpoint>`; body
   `{ session, chatId }` with `session` from the input, D7):
   1. "When called by orchestrator".
@@ -606,7 +610,7 @@ behind an authenticated webhook, with the single config node.
 - Sticky notes: section headers "1 · Ingress", "2 · Guards", "3 · Reply",
   "4 · Send", "5 · Outcome", and a "Keys" note next to the config node: *only
   non-secret settings live here; WAHA API key, OpenAI key and webhook secret
-  are n8n credentials (`WAHA API key`, `OpenAI API`, `WAHA webhook secret`)*.
+  are n8n credentials (`WAHA account`, `OpenAI account`, `WAHA webhook secret`)*.
 - Workflow stays **inactive**. Settings per Global constraints.
 - Export as usual; no scrubbing (D5: only the `<TEST_CHAT_ID>` placeholder
   exists, live and in the repo).

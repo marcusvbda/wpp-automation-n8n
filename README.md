@@ -53,6 +53,8 @@ Runtime data lives on the host as bind mounts, outside the containers and git-ig
 - `n8n-data/` → `/home/node/.n8n` (config, community nodes; shared by main and worker)
 - `gateway-data/` → legacy WAHA local sessions, no longer mounted. Kept on disk as rollback only.
 
+Chatbot example tables: `scripts/sql/chatbot-car-rental.sql`, applied with `docker compose exec -T postgres psql -U n8n -d n8n -v ON_ERROR_STOP=1 -f - < scripts/sql/chatbot-car-rental.sql`.
+
 WAHA sessions moved to Postgres (`WHATSAPP_SESSIONS_POSTGRESQL_URL`, media via `WAHA_MEDIA_STORAGE=POSTGRESQL`). WAHA creates extra databases (`waha_<namespace>`, one per session) with the `waha` role, which therefore has CREATEDB. A session paired before the move has to be paired again.
 
 The init script `postgres/init/01-create-databases.sh` creates the `n8n` and `waha` roles/databases and runs only on an empty `postgres-data/`. Changing `N8N_DB_PASSWORD`/`WAHA_DB_PASSWORD` later needs `ALTER ROLE`.

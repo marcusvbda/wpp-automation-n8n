@@ -18,7 +18,7 @@ workflows are created/validated; `workflows/*.json` are CLI exports of them.
 | 4     | Ingress sub-workflow (filter + normalize)          | n8n-workflows | 1, 3             | S    | DONE       |
 | 5     | Guards sub-workflow (fromMe, direct, allow-list, dedupe, rate limit) | n8n-workflows | 1, 2, 3 | M | DONE |
 | 6     | Reply sub-workflow (AI Agent + Postgres memory)    | n8n-workflows | 1, 2, 3          | S    | DONE        |
-| 7     | Send sub-workflow (seen → typing → delay → send)   | n8n-workflows | 1, 2, 3          | S    | IN_PROGRESS |
+| 7     | Send sub-workflow (seen → typing → delay → send)   | n8n-workflows | 1, 2, 3          | S    | DONE        |
 | 8     | Authenticated inbound webhook (compose + env)      | n8n-workflows | none             | S    | DONE       |
 | 9     | Orchestrator workflow with config node             | n8n-workflows | 4, 5, 6, 7, 8    | M    | PENDING (also needs `WAHA webhook secret`) |
 | 10    | Publish, smoke tests, verification and report      | n8n-workflows | 9                | M    | PENDING    |
@@ -479,7 +479,8 @@ persistent memory, or a clean failure object (never throws for LLM errors).
 
 ### Phase 7 — Send sub-workflow (seen → typing → delay → send)
 
-Status: IN_PROGRESS
+Status: DONE
+Evidence: created via n8n-mcp, id **`yBMIvg47q3KjM4BK`**, inactive, errorWorkflow set; HTTP Request v4.5 with predefined credential `wahaApi` ("WAHA account") — accepted by validation, runtime header injection confirmed only in Phase 10 (fallback: Header Auth `WAHA API key`, owner-created); JSON bodies via `JSON.stringify` (session/chatId/text from input, D7); presence calls best-effort, send `continueErrorOutput` + no retry; delay formula checked locally (len 5/60/400 → 1–3 / 4–6 / 11–13 s); `n8n_validate_workflow` 0 errors 0 warnings; export clean. Correction rounds: (1) `alwaysOutputData` on "Stamp last reply time" (the UPDATE returns no rows, so "Return sent" would never run); (2) `.first()` for trigger reads after the Postgres node. `code-reviewer` APPROVED.
 Role: n8n-workflows · Depends on: 1, 2, 3 · Covers: AC7, AC8, AC12, AC14, AC16 · Size: S
 Spec: §4 item 5, F1 step 5, F6, R5, R8
 

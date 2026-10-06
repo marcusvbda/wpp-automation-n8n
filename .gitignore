@@ -15,3 +15,7 @@ credentials*.json
 docs
 *.sqlite
 backups/
+
+# Postgres / Redis runtime data (never commit)
+postgres-data/
+redis-data/

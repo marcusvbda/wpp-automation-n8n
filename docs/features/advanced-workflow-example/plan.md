@@ -19,7 +19,7 @@ workflows are created/validated; `workflows/*.json` are CLI exports of them.
 | 5     | Guards sub-workflow (fromMe, direct, allow-list, dedupe, rate limit) | n8n-workflows | 1, 2, 3 | M | PENDING |
 | 6     | Reply sub-workflow (AI Agent + Postgres memory)    | n8n-workflows | 1, 2, 3          | S    | PENDING    |
 | 7     | Send sub-workflow (seen → typing → delay → send)   | n8n-workflows | 1, 2, 3          | S    | PENDING    |
-| 8     | Authenticated inbound webhook (compose + env)      | n8n-workflows | none             | S    | PENDING    |
+| 8     | Authenticated inbound webhook (compose + env)      | n8n-workflows | none             | S    | DONE       |
 | 9     | Orchestrator workflow with config node             | n8n-workflows | 4, 5, 6, 7, 8    | M    | PENDING    |
 | 10    | Publish, smoke tests, verification and report      | n8n-workflows | 9                | M    | PENDING    |
 
@@ -521,7 +521,8 @@ rate-limit row, and report failure instead of retrying.
 
 ### Phase 8 — Authenticated inbound webhook (compose + env)
 
-Status: PENDING
+Status: DONE
+Evidence: compose/`.env.example`/`setup.sh` updated; `WAHA_WEBHOOK_SECRET` appended to `.env` (was missing; value never printed); `docker compose config -q` OK; resolved value matches `^X-Waha-Webhook-Secret:[0-9a-f]{64}$`; `sh -n scripts/setup.sh` OK; `docker compose up -d waha` → running, session `Default` `WORKING` (the session is named `Default`, capital D — irrelevant here since replies use the payload's session, D7); `code-reviewer` APPROVED. **Owner prerequisite for Phase 9:** create the Header Auth credential `WAHA webhook secret` (name `X-Waha-Webhook-Secret`, value = `WAHA_WEBHOOK_SECRET` in `.env`) — not present on 2026-10-06.
 Role: n8n-workflows · Depends on: none · Covers: F7 (supports AC1–AC4) · Size: S
 Spec: §4 F7, R8, OD2, A5
 

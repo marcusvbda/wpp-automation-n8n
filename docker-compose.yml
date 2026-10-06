@@ -56,6 +56,7 @@ services:
       WHATSAPP_DEFAULT_ENGINE: NOWEB
       WHATSAPP_HOOK_URL: http://n8n:5678/webhook/waha
       WHATSAPP_HOOK_EVENTS: message.any
+      WHATSAPP_HOOK_CUSTOM_HEADERS: X-Waha-Webhook-Secret:${WAHA_WEBHOOK_SECRET} # n8n Webhook node checks this header (Header Auth)
       WAHA_DASHBOARD_ENABLED: "true"
       WAHA_DASHBOARD_USERNAME: ${WAHA_DASHBOARD_USER}
       WAHA_DASHBOARD_PASSWORD: ${WAHA_DASHBOARD_PASSWORD}

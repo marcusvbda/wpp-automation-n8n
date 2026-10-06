@@ -43,6 +43,7 @@ set_default WAHA_HOST_PORT 3100
 set_default WAHA_DASHBOARD_USER admin
 set_default WAHA_DASHBOARD_PASSWORD "$(secret 12)"
 set_default WAHA_API_KEY "$(secret 32)"
+set_default WAHA_WEBHOOK_SECRET "$(secret 32)"
 set_default N8N_TAG 2.41.7
 set_default N8N_ENCRYPTION_KEY "$(secret 32)"
 set_default TZ America/Sao_Paulo
@@ -98,10 +99,11 @@ Stack is up.
 Owner steps (cannot be automated):
   1. Create the n8n owner account.
   2. Create the WAHA credential in n8n (URL http://waha:3000, API key = WAHA_API_KEY in .env).
-  3. Pair the 'default' WAHA session with the TEST number.
-  4. Optional, free: unlock Debug in editor. In n8n: Settings > Usage and plan > Unlock (email),
+  3. Create a Header Auth credential "WAHA webhook secret" in n8n (name X-Waha-Webhook-Secret, value = WAHA_WEBHOOK_SECRET in .env).
+  4. Pair the 'default' WAHA session with the TEST number.
+  5. Optional, free: unlock Debug in editor. In n8n: Settings > Usage and plan > Unlock (email),
      then put the emailed key in N8N_LICENSE_ACTIVATION_KEY in .env and run:
      docker compose up -d n8n n8n-worker
-  5. Optional MCP: n8n Settings > n8n API > create key, put it in N8N_API_KEY in .env.
-  6. Back up .env (N8N_ENCRYPTION_KEY loss makes saved credentials unreadable).
+  6. Optional MCP: n8n Settings > n8n API > create key, put it in N8N_API_KEY in .env.
+  7. Back up .env (N8N_ENCRYPTION_KEY loss makes saved credentials unreadable).
 EOF

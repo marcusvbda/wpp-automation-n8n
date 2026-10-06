@@ -12,7 +12,6 @@ dist/
 n8n-data/
 gateway-data/
 credentials*.json
-docs
 *.sqlite
 backups/
 

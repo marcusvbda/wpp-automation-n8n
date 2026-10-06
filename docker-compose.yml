@@ -11,6 +11,7 @@ x-n8n-env: &n8n-env
   QUEUE_BULL_REDIS_PASSWORD: ${REDIS_PASSWORD}
   N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
   N8N_DEFAULT_BINARY_DATA_MODE: database # filesystem mode is not supported with workers
+  N8N_LICENSE_ACTIVATION_KEY: ${N8N_LICENSE_ACTIVATION_KEY:-} # Registered Community license (free); no effect once activated
   GENERIC_TIMEZONE: ${TZ}
   TZ: ${TZ}
 
@@ -58,7 +59,7 @@ services:
       WAHA_DASHBOARD_ENABLED: "true"
       WAHA_DASHBOARD_USERNAME: ${WAHA_DASHBOARD_USER}
       WAHA_DASHBOARD_PASSWORD: ${WAHA_DASHBOARD_PASSWORD}
-      WHATSAPP_API_KEY: ${WAHA_API_KEY}
+      WAHA_API_KEY: ${WAHA_API_KEY}
       WHATSAPP_SESSIONS_POSTGRESQL_URL: postgres://waha:${WAHA_DB_PASSWORD}@postgres:5432/waha?sslmode=disable
       WAHA_MEDIA_STORAGE: POSTGRESQL
       WAHA_MEDIA_POSTGRESQL_URL: postgres://waha:${WAHA_DB_PASSWORD}@postgres:5432/waha?sslmode=disable

@@ -53,6 +53,7 @@ set_default WAHA_DB_PASSWORD "$(secret 24)"
 set_default REDIS_TAG 8.10.2-alpine
 set_default REDIS_PASSWORD "$(secret 24)"
 grep -qE '^N8N_API_KEY=' .env || echo 'N8N_API_KEY=' >>.env
+grep -qE '^N8N_LICENSE_ACTIVATION_KEY=' .env || echo 'N8N_LICENSE_ACTIVATION_KEY=' >>.env
 
 # --- data dirs (git-ignored) -------------------------------------------------------------
 mkdir -p n8n-data postgres-data redis-data workflows backups
@@ -98,6 +99,9 @@ Owner steps (cannot be automated):
   1. Create the n8n owner account.
   2. Create the WAHA credential in n8n (URL http://waha:3000, API key = WAHA_API_KEY in .env).
   3. Pair the 'default' WAHA session with the TEST number.
-  4. Optional MCP: n8n Settings > n8n API > create key, put it in N8N_API_KEY in .env.
-  5. Back up .env (N8N_ENCRYPTION_KEY loss makes saved credentials unreadable).
+  4. Optional, free: unlock Debug in editor. In n8n: Settings > Usage and plan > Unlock (email),
+     then put the emailed key in N8N_LICENSE_ACTIVATION_KEY in .env and run:
+     docker compose up -d n8n n8n-worker
+  5. Optional MCP: n8n Settings > n8n API > create key, put it in N8N_API_KEY in .env.
+  6. Back up .env (N8N_ENCRYPTION_KEY loss makes saved credentials unreadable).
 EOF

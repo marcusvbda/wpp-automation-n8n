@@ -1,10 +1,10 @@
 ---
 name: n8n-workflows
 description: Use for n8n work — creating or editing workflow JSON, webhook/trigger design, node configuration, credentials references, error workflows, sub-workflows, Code nodes, and the Docker/compose setup that runs n8n. Does not cover the TypeScript helper service (use node-service).
-tools: Read, Write, Edit, Bash, Grep, Glob
+tools: Read, Write, Edit, Bash, Grep, Glob, mcp__n8n-mcp__*, mcp__context7__*
 model: sonnet
 effort: medium
-maxTurns: 15
+maxTurns: 30
 ---
 
 # Role: n8n-workflows

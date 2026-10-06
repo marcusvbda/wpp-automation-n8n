@@ -37,5 +37,5 @@
             "Read(./docs/archive/**)"
         ]
     },
-    "enabledMcpjsonServers": ["context7", "playwright"]
+    "enabledMcpjsonServers": ["context7", "playwright", "n8n-mcp"]
 }

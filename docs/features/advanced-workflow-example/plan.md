@@ -12,7 +12,7 @@ workflows are created/validated; `workflows/*.json` are CLI exports of them.
 
 | Phase | Title                                              | Role          | Depends on       | Size | Status     |
 | ----- | -------------------------------------------------- | ------------- | ---------------- | ---- | ---------- |
-| 1     | Enable the n8n MCP for the executor                | n8n-workflows | none             | S    | BLOCKED (owner: API key) |
+| 1     | Enable the n8n MCP for the executor                | n8n-workflows | none             | S    | DONE       |
 | 2     | Persistent stores and credentials                  | n8n-workflows | none             | S    | DONE       |
 | 3     | Shared error workflow                              | n8n-workflows | 1                | S    | PENDING    |
 | 4     | Ingress sub-workflow (filter + normalize)          | n8n-workflows | 1, 3             | S    | PENDING    |
@@ -191,7 +191,8 @@ proposes the spec note.
 
 ### Phase 1 — Enable the n8n MCP for the executor
 
-Status: BLOCKED — owner action: `N8N_API_KEY` is empty in `.env` (checked 2026-10-06), so the MCP can't authenticate; MCP tools load only after a Claude Code restart. Edits applied and valid (`jq empty .claude/settings.json` OK; agent tools + `maxTurns: 30` set), left uncommitted. To finish: create the key in n8n (Settings > n8n API) → `N8N_API_KEY=` in `.env` → restart Claude Code → rerun phase 1 (only the `n8n_health_check`/`n8n_list_workflows` checks remain).
+Status: DONE
+Evidence: `enabledMcpjsonServers` += `n8n-mcp`; `n8n-workflows` agent tools += `mcp__n8n-mcp__*`, `mcp__context7__*`, `maxTurns: 30`; `scripts/n8n-mcp.sh` exports `WEBHOOK_SECURITY_MODE=moderate` (default strict SSRF gate blocked `localhost:5678`). Fixes found on the way: first `npx` install takes ~33 s (> Claude Code's 30 s connect timeout) and left a broken npx cache entry — removed and reinstalled, warm start ~4 s. Stdio probe: `n8n_health_check` success/status ok, `n8n_list_workflows` success (3 pre-existing owner workflows — never touched). `jq empty .claude/settings.json`, `sh -n scripts/n8n-mcp.sh` OK; `code-reviewer` APPROVED. Session tools appear after `/mcp` reconnect or a Claude Code restart.
 Role: n8n-workflows (config edit; can be done by the orchestrator) · Depends on: none · Covers: — (enabler) · Size: S
 Spec: owner instruction ("usando o mcp do n8n"), §2 R7
 

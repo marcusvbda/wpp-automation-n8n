@@ -25,7 +25,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        250,
+        170,
         300
       ],
       "parameters": {
@@ -128,16 +128,121 @@
       }
     },
     {
-      "id": "a1000000-0000-4000-8000-000000000004",
-      "name": "Normalize WAHA message",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
+      "id": "e9000071-0000-4000-8000-000000000071",
+      "name": "Extract WAHA message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
       "position": [
-        500,
+        340,
         300
       ],
       "parameters": {
-        "jsCode": "// Maps the raw WAHA (NOWEB) event to one normalized message. Non-user messages end the run.\nconst event = $('Receive WAHA event').first().json;\nconst payload = event.payload ?? {};\nconst fromMe = payload.fromMe === true;\nconst chatId = fromMe ? payload.to : payload.from;\nconst TYPES = {\n  conversation: 'text', extendedTextMessage: 'text', imageMessage: 'image',\n  audioMessage: 'audio', videoMessage: 'video', ptvMessage: 'video',\n  stickerMessage: 'sticker', documentMessage: 'document',\n  documentWithCaptionMessage: 'document', locationMessage: 'location',\n  liveLocationMessage: 'location', contactMessage: 'contact',\n  contactsArrayMessage: 'contact', reactionMessage: 'reaction',\n};\nlet raw = payload._data?.message;\nfor (const w of ['ephemeralMessage', 'viewOnceMessage', 'viewOnceMessageV2', 'editedMessage']) raw = raw?.[w]?.message ?? raw;\nconst key = raw && typeof raw === 'object' ? Object.keys(raw).find((k) => !['messageContextInfo', 'senderKeyDistributionMessage'].includes(k)) : undefined;\nif (key === 'protocolMessage') return [];\nconst text = String(payload.body ?? '').trim();\nlet type = 'unknown';\nif (key) type = key.startsWith('pollCreationMessage') ? 'poll' : (TYPES[key] ?? 'unknown');\nelse if (!payload.hasMedia && text) type = 'text';\nif (type === 'text' && !text) type = 'unknown';\nreturn [{ json: {\n  messageId: payload.id, session: event.session, chatId,\n  senderId: payload.participant ?? payload.from, fromMe, type,\n  text: type === 'text' ? text : '', timestamp: payload.timestamp,\n  isGroup: String(chatId ?? '').endsWith('@g.us'),\n  isDirect: ['@c.us', '@lid', '@s.whatsapp.net'].some((s) => String(chatId ?? '').endsWith(s)),\n} }];"
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e9000072-0000-4000-8000-000000000072",
+              "name": "messageId",
+              "value": "={{ $('Receive WAHA event').item.json.payload?.id }}",
+              "type": "string"
+            },
+            {
+              "id": "e9000073-0000-4000-8000-000000000073",
+              "name": "session",
+              "value": "={{ $('Receive WAHA event').item.json.session }}",
+              "type": "string"
+            },
+            {
+              "id": "e9000074-0000-4000-8000-000000000074",
+              "name": "fromMe",
+              "value": "={{ $('Receive WAHA event').item.json.payload?.fromMe === true }}",
+              "type": "boolean"
+            },
+            {
+              "id": "e9000075-0000-4000-8000-000000000075",
+              "name": "chatId",
+              "value": "={{ $('Receive WAHA event').item.json.payload?.fromMe === true ? $('Receive WAHA event').item.json.payload?.to : $('Receive WAHA event').item.json.payload?.from }}",
+              "type": "string"
+            },
+            {
+              "id": "e9000076-0000-4000-8000-000000000076",
+              "name": "senderId",
+              "value": "={{ $('Receive WAHA event').item.json.payload?.participant ?? $('Receive WAHA event').item.json.payload?.from }}",
+              "type": "string"
+            },
+            {
+              "id": "e9000077-0000-4000-8000-000000000077",
+              "name": "timestamp",
+              "value": "={{ $('Receive WAHA event').item.json.payload?.timestamp }}",
+              "type": "number"
+            },
+            {
+              "id": "e9000078-0000-4000-8000-000000000078",
+              "name": "text",
+              "value": "={{ String($('Receive WAHA event').item.json.payload?.body ?? '').trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "e9000079-0000-4000-8000-000000000079",
+              "name": "hasMedia",
+              "value": "={{ !!$('Receive WAHA event').item.json.payload?.hasMedia }}",
+              "type": "boolean"
+            },
+            {
+              "id": "e9000080-0000-4000-8000-000000000080",
+              "name": "messageKey",
+              "value": "={{ Object.keys(['ephemeralMessage', 'viewOnceMessage', 'viewOnceMessageV2', 'editedMessage'].reduce((m, w) => m?.[w]?.message ?? m, $('Receive WAHA event').item.json.payload?._data?.message) ?? {}).find(k => !['messageContextInfo', 'senderKeyDistributionMessage'].includes(k)) ?? '' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {
+          "ignoreConversionErrors": true
+        }
+      }
+    },
+    {
+      "id": "a1000000-0000-4000-8000-000000000004",
+      "name": "Normalize WAHA message",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        510,
+        300
+      ],
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "e9000081-0000-4000-8000-000000000081",
+              "name": "type",
+              "value": "={{ !$json.messageKey ? (!$json.hasMedia && $json.text ? 'text' : 'unknown')\n  : $json.messageKey === 'protocolMessage' ? 'protocol'\n  : ['conversation', 'extendedTextMessage'].includes($json.messageKey) ? ($json.text ? 'text' : 'unknown')\n  : $json.messageKey.startsWith('pollCreationMessage') ? 'poll'\n  : ({ imageMessage: 'image', audioMessage: 'audio', videoMessage: 'video', ptvMessage: 'video',\n      stickerMessage: 'sticker', documentMessage: 'document', documentWithCaptionMessage: 'document',\n      locationMessage: 'location', liveLocationMessage: 'location', contactMessage: 'contact',\n      contactsArrayMessage: 'contact', reactionMessage: 'reaction' })[$json.messageKey] ?? 'unknown' }}",
+              "type": "string"
+            },
+            {
+              "id": "e9000082-0000-4000-8000-000000000082",
+              "name": "text",
+              "value": "={{ $json.text && ($json.messageKey ? ['conversation', 'extendedTextMessage'].includes($json.messageKey) : !$json.hasMedia) ? $json.text : '' }}",
+              "type": "string"
+            },
+            {
+              "id": "e9000083-0000-4000-8000-000000000083",
+              "name": "isGroup",
+              "value": "={{ String($json.chatId ?? '').endsWith('@g.us') }}",
+              "type": "boolean"
+            },
+            {
+              "id": "e9000084-0000-4000-8000-000000000084",
+              "name": "isDirect",
+              "value": "={{ ['@c.us', '@lid', '@s.whatsapp.net'].some(s => String($json.chatId ?? '').endsWith(s)) }}",
+              "type": "boolean"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "include": "except",
+        "excludeFields": "hasMedia, messageKey",
+        "options": {}
       }
     },
     {
@@ -158,6 +263,15 @@
             "version": 3
           },
           "conditions": [
+            {
+              "id": "c1000000-0000-4000-8000-000000000025",
+              "leftValue": "={{ $json.type }}",
+              "rightValue": "protocol",
+              "operator": {
+                "type": "string",
+                "operation": "notEquals"
+              }
+            },
             {
               "id": "c1000000-0000-4000-8000-000000000002",
               "leftValue": "={{ $json.fromMe }}",
@@ -798,7 +912,7 @@
         0
       ],
       "parameters": {
-        "content": "## 1 · Receive\nWAHA posts `message.any` to the trigger (only that output is wired). The Code node maps the raw payload to one normalized message: `messageId, session, chatId, senderId, fromMe, type, text, timestamp, isGroup, isDirect`. Protocol events end the run.",
+        "content": "## 1 · Receive\nWAHA posts `message.any` to the trigger (only that output is wired). Two Set nodes map the raw payload to one normalized message (Extract pulls the raw fields, Normalize derives type and chat kind): `messageId, session, chatId, senderId, fromMe, type, text, timestamp, isGroup, isDirect`. Protocol events get `type: protocol` and are dropped by the first guard.",
         "height": 560,
         "width": 700,
         "color": 7
@@ -885,6 +999,17 @@
       ]
     },
     "Load workflow config": {
+      "main": [
+        [
+          {
+            "node": "Extract WAHA message",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract WAHA message": {
       "main": [
         [
           {

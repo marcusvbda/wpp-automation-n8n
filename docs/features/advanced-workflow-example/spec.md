@@ -128,6 +128,11 @@ Structure (R7, R7a): one file, `workflows/chatbot-waha-car-rental.json`.
 1. **Receive**: WAHA Trigger (output `message.any` only; it answers WAHA
    immediately) → Load workflow config → Normalize WAHA message (Code).
    Protocol/system messages end the run.
+   Deviation: at the owner's request the Code node was replaced by two Set
+   nodes (Extract WAHA message → Normalize WAHA message), per the
+   `n8n-workflows` convention. Protocol messages now get `type: protocol`
+   and are dropped by the first guard instead of ending the run inside the
+   normalize step. The normalized shape is unchanged.
 2. **Guards** (Filter nodes, each drops the item silently): direct chat, not
    `fromMe`, on the allow-list → record `messageId` (dedupe) → claim the
    per-chat reply slot (rate limit).

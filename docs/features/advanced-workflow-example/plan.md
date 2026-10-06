@@ -16,9 +16,9 @@ workflows are created/validated; `workflows/*.json` are CLI exports of them.
 | 2     | Persistent stores and credentials                  | n8n-workflows | none             | S    | DONE       |
 | 3     | Shared error workflow                              | n8n-workflows | 1                | S    | DONE       |
 | 4     | Ingress sub-workflow (filter + normalize)          | n8n-workflows | 1, 3             | S    | DONE       |
-| 5     | Guards sub-workflow (fromMe, direct, allow-list, dedupe, rate limit) | n8n-workflows | 1, 2, 3 | M | BLOCKED (owner: `Postgres chatbot`) |
-| 6     | Reply sub-workflow (AI Agent + Postgres memory)    | n8n-workflows | 1, 2, 3          | S    | BLOCKED (owner: `Postgres chatbot`) |
-| 7     | Send sub-workflow (seen → typing → delay → send)   | n8n-workflows | 1, 2, 3          | S    | BLOCKED (owner: `Postgres chatbot`) |
+| 5     | Guards sub-workflow (fromMe, direct, allow-list, dedupe, rate limit) | n8n-workflows | 1, 2, 3 | M | DONE |
+| 6     | Reply sub-workflow (AI Agent + Postgres memory)    | n8n-workflows | 1, 2, 3          | S    | IN_PROGRESS |
+| 7     | Send sub-workflow (seen → typing → delay → send)   | n8n-workflows | 1, 2, 3          | S    | IN_PROGRESS |
 | 8     | Authenticated inbound webhook (compose + env)      | n8n-workflows | none             | S    | DONE       |
 | 9     | Orchestrator workflow with config node             | n8n-workflows | 4, 5, 6, 7, 8    | M    | PENDING (also needs `WAHA webhook secret`) |
 | 10    | Publish, smoke tests, verification and report      | n8n-workflows | 9                | M    | PENDING    |
@@ -223,7 +223,7 @@ Spec: owner instruction ("usando o mcp do n8n"), §2 R7
 ### Phase 2 — Persistent stores and credentials
 
 Status: DONE
-Evidence: `scripts/sql/chatbot-car-rental.sql` applied 3× as role `n8n` (runs 2–3: "already exists, skipping"); PKs `chatbot_processed_messages_pkey`, `chatbot_chat_reply_state_pkey` present, tables owned by `n8n` in `public`; README line added; `code-reviewer` APPROVED. Credentials (2026-10-06): existing `OpenAI account` (openAiApi) and `WAHA account` (wahaApi, sends `X-Api-Key` via generic `authenticate`) are reused instead of creating duplicates; **`Postgres chatbot` is still missing — owner prerequisite, checked at the start of Phases 5–7.**
+Evidence: `scripts/sql/chatbot-car-rental.sql` applied 3× as role `n8n` (runs 2–3: "already exists, skipping"); PKs `chatbot_processed_messages_pkey`, `chatbot_chat_reply_state_pkey` present, tables owned by `n8n` in `public`; README line added; `code-reviewer` APPROVED. Credentials (2026-10-06): existing `OpenAI account` (openAiApi) and `WAHA account` (wahaApi, sends `X-Api-Key` via generic `authenticate`) are reused instead of creating duplicates; The owner created the Postgres credential as **`Postgres account`** (id `qBw06fsYVSnHDIYZ`); Phases 5–7 use it.
 Role: n8n-workflows · Depends on: none · Covers: AC4, AC5, AC14 (stores) · Size: S
 Spec: §3 Persistent stores, A3, R4, R8
 
@@ -251,7 +251,7 @@ the credentials every later phase references exist with fixed names.
   `docker compose exec -T postgres psql -U n8n -d n8n -v ON_ERROR_STOP=1 -f - < scripts/sql/chatbot-car-rental.sql`.
 - Credentials the **owner** creates in the n8n UI (exact names; executor never
   sees values):
-  - `Postgres chatbot` — Postgres; host `postgres`, port `5432`, database `n8n`, user `n8n`, password = `N8N_DB_PASSWORD`, SSL disabled.
+  - `Postgres account` — Postgres; host `postgres`, port `5432`, database `n8n`, user `n8n`, password = `N8N_DB_PASSWORD`, SSL disabled.
   - ~~`WAHA API key`~~ → reuse existing `WAHA account` (`wahaApi`) as the
     HTTP Request predefined credential type; fall back to a Header Auth
     `WAHA API key` (name `X-Api-Key`) only if the HTTP Request node can't use
@@ -378,7 +378,8 @@ normalized message, or says why it isn't one.
 
 ### Phase 5 — Guards sub-workflow
 
-Status: BLOCKED — owner action: credential `Postgres chatbot` doesn't exist yet (checked 2026-10-06; creating it with `.env` secrets is blocked for the agent by Claude Code's permission classifier). Postgres: host `postgres`, port `5432`, database `n8n`, user `n8n`, password = `N8N_DB_PASSWORD`, SSL disable.
+Status: DONE
+Evidence: created via n8n-mcp, id **`6pSuha5uHeqK2Ll2`**, inactive, errorWorkflow set; `n8n_validate_workflow` 0 errors 0 warnings; Postgres v2.7 with `queryReplacement` as an expression array (no interpolation), `alwaysOutputData` + `?? ''` checks for empty results; SQL sanity in BEGIN…ROLLBACK (dup insert → 0 rows; second claim within 3 s → 0 rows; interval 0 → 1 row); export unwrapped, `.shared` stripped, no PII/secrets; `code-reviewer` APPROVED (note: a missing `perChatMinIntervalSeconds` fails closed as rate-limited — Phase 9 must set it).
 Role: n8n-workflows · Depends on: 1, 2, 3 · Covers: AC2, AC3, AC4, AC13, AC14, AC16 · Size: M
 Spec: §4 item 3, F2, F5, R1, R8
 
@@ -396,7 +397,7 @@ answered, writing state only for messages that reach the dedupe step.
   3. If "Check allow-list": pass when `!config.restrictToAllowList` or
      `config.allowedChatIds.split(',').map(s => s.trim()).filter(Boolean).includes(message.chatId)`;
      else `{ pass: false, reason: "not-allowed" }`.
-  4. Postgres "Record message id" (credential `Postgres chatbot`, Always Output Data on):
+  4. Postgres "Record message id" (credential `Postgres account`, Always Output Data on):
      `INSERT INTO chatbot_processed_messages (message_id) VALUES ($1) ON CONFLICT (message_id) DO NOTHING RETURNING message_id;` with `$1 = message.messageId`.
      If "Is new message?": `message_id` present → continue; else `{ pass: false, reason: "duplicate" }`.
   5. Postgres "Claim reply slot" (Always Output Data on):
@@ -428,7 +429,7 @@ answered, writing state only for messages that reach the dedupe step.
 
 ### Phase 6 — Reply sub-workflow (AI Agent + Postgres memory)
 
-Status: BLOCKED — owner action: credential `Postgres chatbot` doesn't exist yet (checked 2026-10-06; creating it with `.env` secrets is blocked for the agent by Claude Code's permission classifier). Postgres: host `postgres`, port `5432`, database `n8n`, user `n8n`, password = `N8N_DB_PASSWORD`, SSL disable.
+Status: IN_PROGRESS
 Role: n8n-workflows · Depends on: 1, 2, 3 · Covers: AC1, AC5, AC6, AC8, AC15, AC16 · Size: S
 Spec: §4 item 4, F4, R3, R4, R6
 
@@ -449,7 +450,7 @@ persistent memory, or a clean failure object (never throws for LLM errors).
       (expression/by-id mode), temperature `config.llmTemperature`, max tokens
       `config.llmMaxOutputTokens`, **`maxRetries: 0`**, default timeout.
     - Memory sub-node "Conversation memory" (Postgres Chat Memory, credential
-      `Postgres chatbot`): session id = custom key
+      `Postgres account`): session id = custom key
       `{{ $('When called by orchestrator').item.json.chatId }}`, table
       `chatbot_chat_histories`, context window from `config.memoryWindow`.
       Check with `get_node` whether the window counts messages or exchanges;
@@ -477,7 +478,7 @@ persistent memory, or a clean failure object (never throws for LLM errors).
 
 ### Phase 7 — Send sub-workflow (seen → typing → delay → send)
 
-Status: BLOCKED — owner action: credential `Postgres chatbot` doesn't exist yet (checked 2026-10-06; creating it with `.env` secrets is blocked for the agent by Claude Code's permission classifier). Postgres: host `postgres`, port `5432`, database `n8n`, user `n8n`, password = `N8N_DB_PASSWORD`, SSL disable.
+Status: IN_PROGRESS
 Role: n8n-workflows · Depends on: 1, 2, 3 · Covers: AC7, AC8, AC12, AC14, AC16 · Size: S
 Spec: §4 item 5, F1 step 5, F6, R5, R8
 
@@ -501,7 +502,7 @@ rate-limit row, and report failure instead of retrying.
   6. Wait "Simulate typing": `typingDelaySeconds` seconds.
   7. "Stop typing" → `/api/stopTyping` (`continueRegularOutput`).
   8. "Send text message" → `/api/sendText`, body adds `text`; `onError: continueErrorOutput`.
-     - Success → Postgres "Stamp last reply time" (`Postgres chatbot`):
+     - Success → Postgres "Stamp last reply time" (`Postgres account`):
        `UPDATE chatbot_chat_reply_state SET last_reply_at = now() WHERE chat_id = $1;` →
        Edit Fields "Return sent" `{ sent: true, meta }`.
      - Error → Edit Fields "Return send failure" `{ sent: false, error: <message>, meta }`.

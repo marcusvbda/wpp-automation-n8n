@@ -55,7 +55,7 @@ Init script `postgres/init/01-create-databases.sh` (runs **only on an empty
 ### 2.3 waha
 
 - Engine: `WHATSAPP_DEFAULT_ENGINE=NOWEB`.
-- Webhook: `WHATSAPP_HOOK_URL=http://n8n:5678/webhook/waha`, events `message.any` (includes messages sent from the phone itself, `fromMe`).
+- Webhook: `WHATSAPP_HOOK_URL=http://n8n:5678/webhook/d8dddf0c-f764-4853-b363-4a188b7a40e6/waha` (the WAHA Trigger of `chatbot-waha-car-rental`), events `message.any` (includes messages sent from the phone itself, `fromMe`). No secret header: the WAHA Trigger cannot check one.
 - Dashboard enabled; credentials `WAHA_DASHBOARD_USER` / `WAHA_DASHBOARD_PASSWORD`.
 - API auth: `WAHA_API_KEY` (header `X-Api-Key`).
 - Sessions in Postgres: `WHATSAPP_SESSIONS_POSTGRESQL_URL` → `waha` DB as role `waha`. Media in Postgres too (`WAHA_MEDIA_STORAGE=POSTGRESQL`, `WAHA_MEDIA_POSTGRESQL_URL`).
@@ -94,7 +94,7 @@ Volumes: `./n8n-data` → `/home/node/.n8n`; `./workflows` → `/workflows`.
 ### 2.6 Internal addresses
 
 - WAHA from containers: `http://waha:3000`
-- n8n webhook receiver from WAHA: `http://n8n:5678/webhook/waha`
+- n8n webhook receiver from WAHA: `http://n8n:5678/webhook/d8dddf0c-f764-4853-b363-4a188b7a40e6/waha`
 
 ## 3. Configuration (`.env`)
 
@@ -119,6 +119,8 @@ values. Variables:
 | `REDIS_PASSWORD`             | generated                                                 |
 | `N8N_WORKER_CONCURRENCY`     | optional, default 10 in compose                           |
 | `N8N_LICENSE_ACTIVATION_KEY` | optional; free Registered Community license (Debug in editor, folders, custom execution data). Request in n8n: Settings > Usage and plan > Unlock |
+| `OPENAI_API_KEY`             | owner fills; `setup.sh` creates the `OpenAI account` credential from it (chatbot example) |
+| `TEST_CHAT_IDS`              | owner fills; comma-separated test chat ids, replaces `<TEST_CHAT_ID>` in workflow JSON on import (bot allow-list) |
 | `N8N_API_KEY`                | optional; created by the owner in n8n: Settings > n8n API; used by `scripts/n8n-mcp.sh` |
 
 Rules: never overwrite existing values, only fill missing/empty keys; never
@@ -131,19 +133,21 @@ Compose v2, `openssl`. Steps, in order:
 
 1. Check `docker` and `docker compose` v2.
 2. Create `.env` from `.env.example` (chmod 600) if missing.
-3. `set_default` fills only missing/empty keys (see table in section 3). Secrets via `openssl rand -hex` (12 bytes for the dashboard password, 32 for API key and encryption key, 24 for DB/Redis passwords). WAHA tag picked from `uname -m` (arm64/aarch64 → `noweb-arm-2026.9.2`, else `noweb-2026.9.2`). Appends empty `N8N_API_KEY` and `N8N_LICENSE_ACTIVATION_KEY` if absent.
+3. `set_default` fills only missing/empty keys (see table in section 3). Secrets via `openssl rand -hex` (12 bytes for the dashboard password, 32 for API key and encryption key, 24 for DB/Redis passwords). WAHA tag picked from `uname -m` (arm64/aarch64 → `noweb-arm-2026.9.2`, else `noweb-2026.9.2`). Appends empty `N8N_API_KEY`, `N8N_LICENSE_ACTIVATION_KEY`, `OPENAI_API_KEY` and `TEST_CHAT_IDS` if absent.
 4. Create dirs: `n8n-data postgres-data redis-data workflows backups`.
 5. Install the community node `@devlikeapro/n8n-nodes-waha@2025.2.9` into `n8n-data/nodes` (only if missing) via a one-off `docker compose run --rm --no-deps` of the n8n image.
 6. `docker compose up -d --wait postgres redis`, then `docker compose up -d`.
 7. Wait for n8n `/healthz` (up to 60 tries × 2s); fail with a hint to check logs.
-8. If `workflows/*.json` exists, run `n8n import:workflow --separate --input=/workflows/` (workflows land inactive; same id overwrites). A failure only warns (the owner account may not exist yet; rerun).
-9. Print URLs and owner steps.
+8. Apply `scripts/sql/chatbot-car-rental.sql` (idempotent) to the `n8n` database.
+9. Create the credentials referenced by the workflows (fixed ids), only those missing in `credentials_entity`: `Postgres account` (role `n8n`), `WAHA account` (`http://waha:3000` + `WAHA_API_KEY`), `OpenAI account` (only if `OPENAI_API_KEY` is set). Built from `.env` inside the container, never written to the repo; existing credentials are never overwritten.
+10. Import only the `workflows/*.json` whose id is not in `workflow_entity` (UI edits are never overwritten), with `<TEST_CHAT_ID>` replaced by `TEST_CHAT_IDS`. If the chatbot was imported, `n8n publish:workflow` it and restart `n8n` + `n8n-worker`. Failures only warn (the owner account may not exist yet; rerun).
+11. Print URLs and owner steps.
 
 ## 5. Owner steps (manual, not automatable)
 
 1. Create the n8n owner account.
-2. Create the WAHA credential in n8n: URL `http://waha:3000`, API key = `WAHA_API_KEY`.
-3. Pair the `default` WAHA session with the **test number** in the WAHA dashboard.
+2. Pair the `default` WAHA session with the **test number** in the WAHA dashboard.
+3. Fill `OPENAI_API_KEY` and `TEST_CHAT_IDS` in `.env`, then rerun `scripts/setup.sh`: the chatbot example is live.
 4. Optional: unlock the free license, put the emailed key in `N8N_LICENSE_ACTIVATION_KEY`, then `docker compose up -d n8n n8n-worker`.
 5. Optional: create an n8n API key and put it in `N8N_API_KEY` (for the MCP).
 6. Optional: Google OAuth with redirect URI `http://localhost:5678/rest/oauth2-credential/callback`. In Testing mode the refresh token expires after 7 days; publish the OAuth app for production.
@@ -169,7 +173,7 @@ All runtime data is bind-mounted on the host and git-ignored:
 A WAHA session paired before the move to Postgres must be paired again.
 
 Versioned: `workflows/` (→ `/workflows` in the n8n container) for workflow
-JSON. Currently only `.gitkeep`.
+JSON: `chatbot-waha-car-rental.json` and `system-error-handler.json`.
 
 ## 8. Daily commands
 
@@ -228,7 +232,7 @@ the init script ran. Extract `n8n-data`, start the rest. Requires the same
 
 - `/webhook-test/...` works only while *Listen for test event* is active.
 - `/webhook/...` works only when the workflow is **published** (n8n 2.x renamed *Activate* to *Publish*).
-- WAHA posts to `/webhook/waha`; the Webhook node must use `POST`.
+- WAHA posts to the WAHA Trigger (`@devlikeapro/n8n-nodes-waha`) at `/webhook/<webhookId>/waha`; the `webhookId` is fixed in the workflow JSON and must match `WHATSAPP_HOOK_URL`. The trigger has one output per WAHA event; wire only the ones subscribed.
 
 ## 12. Tooling (`.mcp.json`, `scripts/n8n-mcp.sh`)
 

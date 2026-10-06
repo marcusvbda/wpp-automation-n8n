@@ -1,15 +1,17 @@
 # Advanced workflow example
 
-Status: DRAFT · Created: 2026-10-06
+Status: IMPLEMENTED · Created: 2026-10-06 · Updated: 2026-10-06 (single
+workflow, WAHA community nodes, setup brings it up)
 
 ## 1. Goal
 
 A reference n8n workflow: a WhatsApp chatbot on WAHA for a **hypothetical car
 rental company** (fictional, invented for this test). It shows the repo's
-conventions end to end: one central config node, a segmented structure, direct
-chats only, conversation memory, human-like typing delays and an LLM
-(`gpt-4o-mini`) driven by editable business rules. It is a test/example, not a
-production bot; all company data is invented.
+conventions end to end: one central config node, one readable workflow split
+into sections, direct chats only, conversation memory, human-like typing
+delays and an LLM (`gpt-4o-mini`) driven by editable business rules. It is a
+study example, not a production bot; all company data is invented. A fresh
+clone + `scripts/setup.sh` brings it up running.
 
 ## 2. Ground rules
 
@@ -19,9 +21,10 @@ production bot; all company data is invented.
 - R2. **One config node.** A single Edit Fields (Set) node, "Load workflow
   config", right after the ingress, is the only place with tunable values
   (the workflow's "env"). Every other node reads settings from it and never
-  hardcodes them. It holds **non-secret** values only: secrets (WAHA API key,
-  OpenAI key, webhook secret) stay in n8n credentials, referenced by name
-  (`CLAUDE.md`). A short "Keys" sticky note says this next to the node.
+  hardcodes them. It holds **non-secret** values only: secrets and connection
+  data (WAHA URL + API key, OpenAI key, Postgres) stay in n8n credentials,
+  referenced by name (`CLAUDE.md`). A short "Keys" sticky note says this next
+  to the node.
 - R3. **Business rules are an input field.** The company's rules, tone and
   facts live in one config field (`businessRules`, multi-line text) injected as
   the LLM system prompt. Changing the bot's behaviour means editing only that
@@ -36,15 +39,22 @@ production bot; all company data is invented.
   instantly.
 - R6. **Model.** OpenAI `gpt-4o-mini` (model name is a config field,
   `llmModel`).
-- R7. **Segmented and organized.** The solution is split into an orchestrator
-  workflow plus sub-workflows, one per responsibility, with sticky-note
-  section headers in each canvas, left-to-right flow, English verb-first node
-  names and no crossing connections.
-- R8. **Gateway safety** (`whatsapp-gateway` skill): inbound authenticated
-  (OD2), normalize at the edge, dedupe on `messageId`, ignore `fromMe`,
-  per-chat rate limit, test sends gated by an allow-list, failed sends go to
-  the error workflow and are never blindly retried, no real numbers or PII in
-  the repo.
+- R7. **One workflow, organized by sections.** The whole bot is a single
+  workflow (no sub-workflows): it is a study example and one canvas is easier
+  to follow. Sections are sticky-note headers (Receive · Guards · Reply ·
+  Send · Outcome), left-to-right flow, English verb-first node names, no
+  crossing connections. Guards use Filter nodes (drop silently) instead of
+  IF + "return ignored" pairs.
+- R7a. **WAHA community nodes.** Every gateway interaction uses the installed
+  `@devlikeapro/n8n-nodes-waha` package: the **WAHA Trigger** for inbound
+  events and the **WAHA** node (resource Chatting: Send Seen, Start Typing,
+  Stop Typing, Send Text) for outbound calls. No HTTP Request or Webhook
+  nodes talk to WAHA.
+- R8. **Gateway safety** (`whatsapp-gateway` skill): normalize at the edge,
+  dedupe on `messageId`, ignore `fromMe`, per-chat rate limit, test sends
+  gated by an allow-list, failed sends go to the error workflow and are never
+  blindly retried, no real numbers or PII in the repo. Inbound is **not**
+  authenticated by a secret (see OD2).
 - R9. The bot never initiates a conversation; it only answers inbound direct
   messages (no opt-in problem, no bulk sends).
 
@@ -56,8 +66,6 @@ All new.
 
 | Field | Type | Default (example) | Meaning |
 | --- | --- | --- | --- |
-| `wahaBaseUrl` | string | `http://waha:3000` | WAHA API base URL inside the compose network |
-| `wahaSession` | string | `default` | WAHA session name |
 | `llmModel` | string | `gpt-4o-mini` | OpenAI chat model |
 | `llmTemperature` | number | `0.4` | Sampling temperature |
 | `llmMaxOutputTokens` | number | `300` | Cap on reply length |
@@ -69,7 +77,7 @@ All new.
 | `seenDelaySeconds` | number | `1` | Pause between "seen" and "typing" |
 | `perChatMinIntervalSeconds` | number | `3` | Rate limit: minimum gap between bot replies in one chat |
 | `restrictToAllowList` | boolean | `true` | Dev gate: answer only chats in `allowedChatIds` |
-| `allowedChatIds` | string (comma list) | `<TEST_CHAT_ID>` | Allow-listed test chat ids (placeholder; real values from `.env`/owner, never committed) |
+| `allowedChatIds` | string (comma list) | `<TEST_CHAT_ID>` | Allow-listed test chat ids (placeholder in the repo; `scripts/setup.sh` replaces it with `TEST_CHAT_IDS` from `.env` on import) |
 | `unsupportedTypeReply` | string | see §5 | Fixed reply for non-text messages |
 | `failureReply` | string | see §5 | Fixed reply when the LLM fails (see F4) |
 | `businessRules` | string (multi-line) | see below | Company rules/system prompt (R3) |
@@ -106,30 +114,35 @@ invented):**
 - Processed message ids (dedupe): `messageId` unique, `processedAt`.
 - Last reply timestamp per `chatId` (rate limit).
 
-**Normalized message shape** (output of the ingress, per `whatsapp-gateway`):
-`messageId, chatId, senderId, fromMe, type, text, timestamp, isGroup,
-isDirect`.
+The two tables come from `scripts/sql/chatbot-car-rental.sql`, applied by
+`scripts/setup.sh`.
+
+**Normalized message shape** (output of the normalize step, per
+`whatsapp-gateway`): `messageId, session, chatId, senderId, fromMe, type,
+text, timestamp, isGroup, isDirect`. Replies use the event's `session`.
 
 ## 4. Flows
 
-Structure (R7). Names are proposals; files follow `<area>-<purpose>.json`
-(`chatbot-waha-car-rental` + one sub-workflow per segment):
+Structure (R7, R7a): one file, `workflows/chatbot-waha-car-rental.json`.
 
-1. **Orchestrator** (`chatbot-waha-car-rental`): Webhook → Load workflow
-   config → Ingress → Guards → Reply → Send. Respond to the webhook
-   immediately, then do the slow work.
-2. **Ingress sub-workflow**: authenticate (OD2), keep only `message` events,
-   normalize WAHA payload to the shape in §3.
-3. **Guards sub-workflow**: ignore `fromMe`, ignore non-direct chats (R1),
-   dedupe, allow-list gate, per-chat rate limit.
-4. **Reply sub-workflow**: AI Agent (`gpt-4o-mini`, system prompt =
-   `businessRules`, Postgres Chat Memory).
-5. **Send sub-workflow**: seen → typing → delay → stop typing → send text.
+1. **Receive**: WAHA Trigger (output `message.any` only; it answers WAHA
+   immediately) → Load workflow config → Normalize WAHA message (Code).
+   Protocol/system messages end the run.
+2. **Guards** (Filter nodes, each drops the item silently): direct chat, not
+   `fromMe`, on the allow-list → record `messageId` (dedupe) → claim the
+   per-chat reply slot (rate limit).
+3. **Reply**: text → AI Agent (`gpt-4o-mini`, system prompt =
+   `businessRules`, Postgres Chat Memory); other types → `unsupportedTypeReply`;
+   LLM error or empty reply → `failureReply`. All three produce
+   `{ text, replyKind }`.
+4. **Send** (WAHA nodes): compute delay → Send Seen → wait → Start Typing →
+   wait → Stop Typing → Send Text.
+5. **Outcome**: stamp last reply time; an LLM failure or a failed send fails
+   the execution once (error workflow).
 
 **F1 — Happy path (end user on WhatsApp, text, direct chat)**
 1. User sends a text to the bot's number; WAHA posts to n8n.
-2. n8n answers the webhook immediately; the payload is authenticated and
-   normalized.
+2. The WAHA Trigger answers WAHA immediately; the payload is normalized.
 3. Guards pass (not `fromMe`, direct chat, new `messageId`, allowed, rate
    limit OK); the `messageId` is recorded as processed.
 4. The agent loads the last `memoryWindow` messages for the `chatId`, calls
@@ -159,14 +172,19 @@ queued).
 **F6 — Gateway send failure:** recorded and routed to the error workflow; the
 send is not retried (R8).
 
-**F7 — Authentication failure:** rejected in the first nodes with no further
-processing (per OD2).
+**F7 — Fresh setup:** on a new clone, `scripts/setup.sh` creates `.env`,
+starts the stack, creates the tables and the `Postgres account`,
+`WAHA account` and `OpenAI account` credentials from `.env` (only when
+missing), imports the workflows not yet in n8n (allow-list from
+`TEST_CHAT_IDS`) and publishes the chatbot. Owner steps: create the n8n owner
+account, pair the WAHA session, fill `OPENAI_API_KEY` and `TEST_CHAT_IDS`,
+rerun the script.
 
 ## 5. Conversation surfaces
 
-Trigger: inbound WAHA `message` events on the production webhook
-`/webhook/waha` (the path already set in `docker-compose.yml`
-`WHATSAPP_HOOK_URL`; see A5).
+Trigger: inbound WAHA `message.any` events on the WAHA Trigger's production
+URL `/webhook/<webhookId>/waha`. The `webhookId` is fixed in the workflow
+JSON and `WHATSAPP_HOOK_URL` in `docker-compose.yml` points to it (A5).
 
 - **Normal reply:** LLM text, produced from `businessRules` (language: the
   customer's, default Brazilian Portuguese).
@@ -205,9 +223,9 @@ LLM language; everything else in the repo is English.
   there, then the next execution uses the new value without editing any other
   node.
 - AC9. Given the workflow JSON, when searched, then the only occurrences of
-  the config values (model name, delays, session name, base URL, business
-  rules) are in the config node, and no secret, token or real phone number
-  appears anywhere in the repo.
+  the config values (model name, delays, business rules) are in the config
+  node, the WAHA URL lives only in the `WAHA account` credential, and no
+  secret, token or real phone number appears anywhere in the repo.
 - AC10. Given a business-rules question covered by the example data (e.g.
   "Qual o valor da diária do SUV?"), when asked, then the reply states the
   invented figure (R$ 229); and given a question not covered, the bot says a
@@ -225,10 +243,16 @@ LLM language; everything else in the repo is English.
 - AC15. Given the LLM call fails, when the execution runs, then the error
   workflow is triggered once and the user receives `failureReply` once, with no
   retry.
-- AC16. Given the repo, when inspected, then the orchestrator and each
-  sub-workflow exist as separate files in `workflows/`, each with sticky-note
-  section headers, and every workflow sets the shared error workflow in its
-  settings.
+- AC16. Given the repo, when inspected, then the bot is one file
+  (`workflows/chatbot-waha-car-rental.json`) with sticky-note section
+  headers, no sub-workflows, the shared error workflow set in its settings,
+  and every WAHA call (inbound and outbound) made by
+  `@devlikeapro/n8n-nodes-waha` nodes (no HTTP Request/Webhook node for WAHA).
+- AC17. Given a fresh clone, when `scripts/setup.sh` runs, the owner account
+  exists and `.env` has `OPENAI_API_KEY` and `TEST_CHAT_IDS`, then the
+  chatbot is published and answers a text from an allowed chat without any
+  manual step in the n8n editor. Rerunning the script never overwrites
+  existing credentials or workflows.
 
 ## 9. Assumptions
 
@@ -243,9 +267,9 @@ LLM language; everything else in the repo is English.
   after checking docs.
 - A4. Typing delay is proportional to the reply length (clamped + jitter)
   rather than a fixed time.
-- A5. Webhook path stays `/webhook/waha` (already in `docker-compose.yml`);
-  the `whatsapp/<gateway>/incoming` convention in the skill is not applied
-  because the current compose is the source of truth.
+- A5. The WAHA Trigger fixes its own path (`<webhookId>/waha`), so the
+  `whatsapp/<gateway>/incoming` convention in the skill is not applied;
+  `WHATSAPP_HOOK_URL` in compose follows the trigger.
 - A6. Replies are a single message (no splitting into several bubbles).
 - A7. Bot copy is Brazilian Portuguese; the business rules are written in
   English and instruct the model to reply in the customer's language.
@@ -253,22 +277,19 @@ LLM language; everything else in the repo is English.
 - A9. Unsupported types get one fixed reply instead of silence, so users know
   why nothing happened.
 
-## 10. Open decisions
+## 10. Decisions
 
-- OD1 — Where does the error workflow notify the owner? · options: owner's
-  WhatsApp test chat, email, n8n execution log only · recommendation: n8n
-  execution log + email (no WhatsApp sends from error paths). No shared error
-  workflow exists yet in `workflows/`.
-- OD2 — How is the inbound webhook authenticated? The current compose sends
-  `message.any` to `http://n8n:5678/webhook/waha` with no secret or HMAC, and
-  the skill requires verification. · options: (a) WAHA HMAC
-  (`WHATSAPP_HOOK_HMAC_KEY`) or a custom header configured in compose + Header
-  Auth on the Webhook node, (b) rely on the internal Docker network only ·
-  recommendation: (a); it needs a compose/`.env` change the owner must approve.
-- OD3 — Should `message.any` (which includes the bot's own `fromMe` messages)
-  stay as the only subscribed event, or switch to `message`? · recommendation:
-  keep `message.any` as is and filter `fromMe` in the workflow (no compose
-  change).
+- OD1 — Error notifications: n8n execution log only, via
+  `system-error-handler` (no WhatsApp sends from error paths).
+- OD2 — Inbound authentication: **none** (owner, 2026-10-06). The WAHA
+  Trigger only reads the request body, so it cannot check a secret header or
+  HMAC. Inbound safety relies on n8n being bound to `127.0.0.1` plus the
+  Docker network, and on the UUID in the trigger URL. Deviation from the
+  `whatsapp-gateway` skill ("authenticate inbound"), accepted for this study
+  setup; a public deployment needs a reverse proxy that checks a secret, or
+  a Webhook node with Header Auth in front.
+- OD3 — Keep `message.any` as the only subscribed event; `fromMe` is
+  filtered in the workflow.
 
 ## Ideas not included
 

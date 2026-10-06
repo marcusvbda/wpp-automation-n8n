@@ -13,7 +13,7 @@ git clone <repo> && cd wpp-automation-n8n
 ./scripts/setup.sh
 ```
 
-Requires Docker with Compose v2 and `openssl`. The script is idempotent: it creates `.env` (generates secrets, picks the WAHA tag for the CPU arch, never overwrites existing values), creates the data dirs, installs the WAHA community node, starts Postgres, Redis, WAHA, n8n and the worker, and imports `workflows/*.json` (inactive). On a new server, set `WEBHOOK_URL`/`N8N_EDITOR_BASE_URL` in `docker-compose.yml` to the public URL and put a reverse proxy with TLS in front.
+Requires Docker with Compose v2 and `openssl`. The script is idempotent: it creates `.env` (generates secrets, picks the WAHA tag for the CPU arch, never overwrites existing values), creates the data dirs, installs the WAHA community node, starts Postgres, Redis, WAHA, n8n and the worker, creates the chatbot example's tables, creates the `Postgres account`, `WAHA account` and `OpenAI account` credentials from `.env` when missing, imports the `workflows/*.json` not yet in n8n (replacing `<TEST_CHAT_ID>` with `TEST_CHAT_IDS`) and publishes the chatbot. Run it once, create the owner account, fill `OPENAI_API_KEY` and `TEST_CHAT_IDS` in `.env`, run it again: the example is live. On a new server, set `WEBHOOK_URL`/`N8N_EDITOR_BASE_URL` in `docker-compose.yml` to the public URL and put a reverse proxy with TLS in front.
 
 Store the secrets in the password manager. Losing `N8N_ENCRYPTION_KEY` makes saved n8n credentials unreadable.
 
@@ -27,7 +27,7 @@ Owner steps:
 
 - n8n editor: `http://localhost:5678`
 - WAHA dashboard: `http://localhost:3100/dashboard` (host port from `WAHA_HOST_PORT`)
-- From inside containers: `http://waha:3000` and `http://n8n:5678/webhook/waha`
+- From inside containers: `http://waha:3000` and `http://n8n:5678/webhook/d8dddf0c-f764-4853-b363-4a188b7a40e6/waha` (the chatbot's WAHA Trigger)
 - WAHA API key header: `X-Api-Key`
 
 ## Daily commands
@@ -53,7 +53,7 @@ Runtime data lives on the host as bind mounts, outside the containers and git-ig
 - `n8n-data/` → `/home/node/.n8n` (config, community nodes; shared by main and worker)
 - `gateway-data/` → legacy WAHA local sessions, no longer mounted. Kept on disk as rollback only.
 
-Chatbot example tables: `scripts/sql/chatbot-car-rental.sql`, applied with `docker compose exec -T postgres psql -U n8n -d n8n -v ON_ERROR_STOP=1 -f - < scripts/sql/chatbot-car-rental.sql`.
+Chatbot example tables: `scripts/sql/chatbot-car-rental.sql`, applied by `scripts/setup.sh`.
 
 WAHA sessions moved to Postgres (`WHATSAPP_SESSIONS_POSTGRESQL_URL`, media via `WAHA_MEDIA_STORAGE=POSTGRESQL`). WAHA creates extra databases (`waha_<namespace>`, one per session) with the `waha` role, which therefore has CREATEDB. A session paired before the move has to be paired again.
 
@@ -117,8 +117,8 @@ Owner steps: n8n Settings > n8n API > create an API key, put it in `N8N_API_KEY`
 
 - `/webhook-test/...` works only while *Listen for test event* is active.
 - `/webhook/...` works only when the workflow is **published** (n8n 2.x renamed *Activate* to *Publish*).
-- WAHA posts to `/webhook/waha` with event `message.any`, which includes messages sent from the phone itself (`fromMe`).
-- The Webhook node must use `POST`.
+- WAHA posts event `message.any` (includes messages sent from the phone itself, `fromMe`) to the WAHA Trigger node of `@devlikeapro/n8n-nodes-waha`. Its URL is `/webhook/<webhookId>/waha`; the `webhookId` is fixed in the workflow JSON and matches `WHATSAPP_HOOK_URL` in `docker-compose.yml`.
+- The trigger has one output per WAHA event; only `message.any` is wired. It cannot check a secret header, so inbound safety relies on n8n being reachable only from localhost and the Docker network.
 
 ## WAHA edition limits (checked 2026-10-05)
 

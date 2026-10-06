@@ -1,11 +1,17 @@
 #!/bin/sh
 # One-command bootstrap for a fresh clone: ./scripts/setup.sh
 # Idempotent. Creates .env (never overwrites existing values), data dirs, installs the
-# WAHA community node, starts the stack and imports the versioned workflows.
+# WAHA community node, starts the stack, creates the example's tables and credentials,
+# and imports + publishes the versioned workflows that are not in n8n yet.
 set -eu
 cd "$(dirname "$0")/.."
 
 WAHA_NODE_PKG="@devlikeapro/n8n-nodes-waha@2025.2.9"
+CHATBOT_WORKFLOW_ID=3zFS5yZDOZFAAhfM
+# Credential ids referenced by workflows/*.json
+CRED_POSTGRES_ID=qBw06fsYVSnHDIYZ
+CRED_WAHA_ID=fLb4y6X1sdRn0lC8
+CRED_OPENAI_ID=KFZp3oDrOgr20VBL
 
 command -v docker >/dev/null || { echo "docker is required" >&2; exit 1; }
 docker compose version >/dev/null || { echo "docker compose v2 is required" >&2; exit 1; }
@@ -43,7 +49,6 @@ set_default WAHA_HOST_PORT 3100
 set_default WAHA_DASHBOARD_USER admin
 set_default WAHA_DASHBOARD_PASSWORD "$(secret 12)"
 set_default WAHA_API_KEY "$(secret 32)"
-set_default WAHA_WEBHOOK_SECRET "$(secret 32)"
 set_default N8N_TAG 2.41.7
 set_default N8N_ENCRYPTION_KEY "$(secret 32)"
 set_default TZ America/Sao_Paulo
@@ -55,6 +60,10 @@ set_default REDIS_TAG 8.10.2-alpine
 set_default REDIS_PASSWORD "$(secret 24)"
 grep -qE '^N8N_API_KEY=' .env || echo 'N8N_API_KEY=' >>.env
 grep -qE '^N8N_LICENSE_ACTIVATION_KEY=' .env || echo 'N8N_LICENSE_ACTIVATION_KEY=' >>.env
+grep -qE '^OPENAI_API_KEY=' .env || echo 'OPENAI_API_KEY=' >>.env
+grep -qE '^TEST_CHAT_IDS=' .env || echo 'TEST_CHAT_IDS=' >>.env
+
+env_get() { grep -E "^$1=" .env | tail -n1 | cut -d= -f2-; }
 
 # --- data dirs (git-ignored) -------------------------------------------------------------
 mkdir -p n8n-data postgres-data redis-data workflows backups
@@ -83,13 +92,57 @@ until docker compose exec -T n8n wget -qO- http://localhost:5678/healthz >/dev/n
 done
 echo
 
-# --- workflows (imported inactive; overwrites workflows with the same id) -------------------
-if ls workflows/*.json >/dev/null 2>&1; then
-  docker compose exec -T n8n n8n import:workflow --separate --input=/workflows/ ||
-    echo "workflow import failed; create the owner account in n8n first, then rerun this script" >&2
+# --- chatbot example tables (idempotent) ------------------------------------------------------
+docker compose exec -T postgres psql -q -U n8n -d n8n -v ON_ERROR_STOP=1 -f - <scripts/sql/chatbot-car-rental.sql
+
+n8n_db() { docker compose exec -T postgres psql -U n8n -d n8n -tAc "$1"; }
+exists() { [ -n "$(n8n_db "SELECT 1 FROM $1 WHERE id = '$2'")" ]; }
+
+# --- credentials: created from .env only when missing (never overwritten) ---------------------
+creds=""
+add_cred() { creds="${creds:+$creds,}$1"; }
+exists credentials_entity "$CRED_POSTGRES_ID" ||
+  add_cred "{\"id\":\"$CRED_POSTGRES_ID\",\"name\":\"Postgres account\",\"type\":\"postgres\",\"data\":{\"host\":\"postgres\",\"port\":5432,\"database\":\"n8n\",\"user\":\"n8n\",\"password\":\"$(env_get N8N_DB_PASSWORD)\",\"ssl\":\"disable\"}}"
+exists credentials_entity "$CRED_WAHA_ID" ||
+  add_cred "{\"id\":\"$CRED_WAHA_ID\",\"name\":\"WAHA account\",\"type\":\"wahaApi\",\"data\":{\"url\":\"http://waha:3000\",\"apiKey\":\"$(env_get WAHA_API_KEY)\"}}"
+openai_key=$(env_get OPENAI_API_KEY)
+if ! exists credentials_entity "$CRED_OPENAI_ID" && [ -n "$openai_key" ]; then
+  add_cred "{\"id\":\"$CRED_OPENAI_ID\",\"name\":\"OpenAI account\",\"type\":\"openAiApi\",\"data\":{\"apiKey\":\"$openai_key\"}}"
+fi
+if [ -n "$creds" ]; then
+  printf '[%s]\n' "$creds" | docker compose exec -T n8n sh -c \
+    'cat >/tmp/creds.json && n8n import:credentials --input=/tmp/creds.json; status=$?; rm -f /tmp/creds.json; exit $status' ||
+    echo "credential import failed; create the owner account in n8n first, then rerun this script" >&2
 fi
 
-host_port=$(grep -E '^WAHA_HOST_PORT=' .env | cut -d= -f2-)
+# --- workflows: import only the ones not in n8n yet (never overwrites UI edits) --------------
+# <TEST_CHAT_ID> in the JSON is replaced by TEST_CHAT_IDS from .env (the bot's allow-list).
+test_chat_ids=$(env_get TEST_CHAT_IDS)
+docker compose exec -T n8n sh -c 'rm -rf /tmp/wf && mkdir -p /tmp/wf'
+imported=""
+for f in workflows/*.json; do
+  [ -f "$f" ] || continue
+  id=$(sed -n 's/^  "id": "\([^"]*\)".*/\1/p' "$f" | head -n1)
+  exists workflow_entity "$id" && continue
+  sed "s/<TEST_CHAT_ID>/${test_chat_ids:-<TEST_CHAT_ID>}/" "$f" |
+    docker compose exec -T n8n sh -c "cat >/tmp/wf/$(basename "$f")"
+  imported="$imported $id"
+done
+if [ -n "$imported" ]; then
+  if docker compose exec -T n8n n8n import:workflow --separate --input=/tmp/wf; then
+    case "$imported" in
+      *"$CHATBOT_WORKFLOW_ID"*)
+        docker compose exec -T n8n n8n publish:workflow --id="$CHATBOT_WORKFLOW_ID"
+        docker compose restart n8n n8n-worker >/dev/null # CLI publish takes effect on restart
+        ;;
+    esac
+  else
+    echo "workflow import failed; create the owner account in n8n first, then rerun this script" >&2
+  fi
+fi
+docker compose exec -T n8n rm -rf /tmp/wf
+
+host_port=$(env_get WAHA_HOST_PORT)
 cat <<EOF
 
 Stack is up.
@@ -97,13 +150,13 @@ Stack is up.
   WAHA dashboard: http://localhost:${host_port}/dashboard (credentials in .env)
 
 Owner steps (cannot be automated):
-  1. Create the n8n owner account.
-  2. Create the WAHA credential in n8n (URL http://waha:3000, API key = WAHA_API_KEY in .env).
-  3. Create a Header Auth credential "WAHA webhook secret" in n8n (name X-Waha-Webhook-Secret, value = WAHA_WEBHOOK_SECRET in .env).
-  4. Pair the 'default' WAHA session with the TEST number.
-  5. Optional, free: unlock Debug in editor. In n8n: Settings > Usage and plan > Unlock (email),
+  1. Create the n8n owner account, then rerun this script (credentials + workflows need it).
+  2. Pair the 'default' WAHA session with the TEST number.
+  3. Put OPENAI_API_KEY and TEST_CHAT_IDS (comma-separated chat ids, e.g. <id>@lid or
+     <number>@c.us) in .env before the first rerun; the bot only answers those chats.
+  4. Optional, free: unlock Debug in editor. In n8n: Settings > Usage and plan > Unlock (email),
      then put the emailed key in N8N_LICENSE_ACTIVATION_KEY in .env and run:
      docker compose up -d n8n n8n-worker
-  6. Optional MCP: n8n Settings > n8n API > create key, put it in N8N_API_KEY in .env.
-  7. Back up .env (N8N_ENCRYPTION_KEY loss makes saved credentials unreadable).
+  5. Optional MCP: n8n Settings > n8n API > create key, put it in N8N_API_KEY in .env.
+  6. Back up .env (N8N_ENCRYPTION_KEY loss makes saved credentials unreadable).
 EOF

@@ -15,7 +15,7 @@ workflows are created/validated; `workflows/*.json` are CLI exports of them.
 | 1     | Enable the n8n MCP for the executor                | n8n-workflows | none             | S    | DONE       |
 | 2     | Persistent stores and credentials                  | n8n-workflows | none             | S    | DONE       |
 | 3     | Shared error workflow                              | n8n-workflows | 1                | S    | DONE       |
-| 4     | Ingress sub-workflow (filter + normalize)          | n8n-workflows | 1, 3             | S    | PENDING    |
+| 4     | Ingress sub-workflow (filter + normalize)          | n8n-workflows | 1, 3             | S    | DONE       |
 | 5     | Guards sub-workflow (fromMe, direct, allow-list, dedupe, rate limit) | n8n-workflows | 1, 2, 3 | M | PENDING |
 | 6     | Reply sub-workflow (AI Agent + Postgres memory)    | n8n-workflows | 1, 2, 3          | S    | PENDING    |
 | 7     | Send sub-workflow (seen → typing → delay → send)   | n8n-workflows | 1, 2, 3          | S    | PENDING    |
@@ -157,7 +157,7 @@ proposes the spec note.
   - **Normalized message** (`message`): `{ messageId, session, chatId, senderId, fromMe, type, text, timestamp, isGroup, isDirect }`
     (`session` added, D7);
     `type ∈ text|image|audio|video|sticker|document|location|contact|reaction|poll|unknown`.
-  - Ingress returns `{ accepted: boolean, reason?: string, message?: Message }`.
+  - Ingress returns `{ accepted: boolean, reason?: "not-a-message-event" | "not-a-user-message", message?: Message }`.
   - Guards returns `{ pass: boolean, reason: string }`.
   - Reply returns `{ ok: true, reply: string }` or `{ ok: false, error: string }`.
   - Send takes `{ config, session, chatId, text, meta }` and returns `{ sent: boolean, error?: string, meta }` (`meta` echoed unchanged).
@@ -316,7 +316,8 @@ later workflow can set it as its error workflow.
 
 ### Phase 4 — Ingress sub-workflow (filter + normalize)
 
-Status: PENDING
+Status: DONE
+Evidence: created via n8n-mcp, id **`bxDRnRLTIloMn7tY`**, inactive, errorWorkflow `FF0x666oa1bfHLDI`; `n8n_validate_workflow` 0 errors 0 warnings; Code node 29 lines, pure; local `node` sanity on 8 fake payloads (text, image, group, status, newsletter, fromMe, ephemeral-wrapped text → text, protocolMessage → ignored); export unwrapped, `.shared` stripped, `jq empty` OK, no PII, secrets grep: 1 expected hit (`@s.whatsapp.net` suffix in code). Review round 1 → APPROVED with 2 fixes applied (below the product boundary): unwrap `ephemeralMessage`/`viewOnceMessage(V2)`/`editedMessage`; `protocolMessage` (delete/edit events) → `{ accepted: false, reason: "not-a-user-message" }` (F2: not a user message, so no unsupported reply). Risk noted: the NOWEB `_data.message` shape isn't documented by WAHA (raw WhatsApp proto) — Phase 10 confirms with real messages.
 Role: n8n-workflows · Depends on: 1, 3 · Covers: AC2, AC3, AC12 (type detection), AC16 · Size: S
 Spec: §3 Normalized message shape, §4 item 2, R1, R8, OD3
 

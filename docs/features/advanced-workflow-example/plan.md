@@ -14,7 +14,7 @@ workflows are created/validated; `workflows/*.json` are CLI exports of them.
 | ----- | -------------------------------------------------- | ------------- | ---------------- | ---- | ---------- |
 | 1     | Enable the n8n MCP for the executor                | n8n-workflows | none             | S    | DONE       |
 | 2     | Persistent stores and credentials                  | n8n-workflows | none             | S    | DONE       |
-| 3     | Shared error workflow                              | n8n-workflows | 1                | S    | PENDING    |
+| 3     | Shared error workflow                              | n8n-workflows | 1                | S    | DONE       |
 | 4     | Ingress sub-workflow (filter + normalize)          | n8n-workflows | 1, 3             | S    | PENDING    |
 | 5     | Guards sub-workflow (fromMe, direct, allow-list, dedupe, rate limit) | n8n-workflows | 1, 2, 3 | M | PENDING |
 | 6     | Reply sub-workflow (AI Agent + Postgres memory)    | n8n-workflows | 1, 2, 3          | S    | PENDING    |
@@ -123,7 +123,8 @@ proposes the spec note.
 - **Export after each build phase** (AC16):
   `docker compose exec -T n8n n8n export:workflow --id=<id> --pretty --output=/workflows/<file>.json`.
   If the CLI writes an array, unwrap to the single object (`jq '.[0]'`) — the
-  setup script imports with `--separate`. No `pinData` (check
+  setup script imports with `--separate`. **Always drop `.shared`** (`jq 'del(.shared)'`):
+  the export embeds the owner's project name (full name + email) there — PII. No `pinData` (check
   `jq 'has("pinData") and (.pinData|length>0)'` is `false`), credentials as
   `{ id, name }` only, workflow `name` = file basename. Never
   `export:credentials`.
@@ -276,7 +277,8 @@ the credentials every later phase references exist with fixed names.
 
 ### Phase 3 — Shared error workflow
 
-Status: PENDING
+Status: DONE
+Evidence: created via n8n-mcp, id **`FF0x666oa1bfHLDI`** (use as `errorWorkflow` everywhere), inactive; nodes "On workflow error" (errorTrigger v1) → "Summarize error" (Set v3.5, 7 fields) + sticky; `validate_workflow`/`n8n_validate_workflow` 0 errors 0 warnings; exported, unwrapped from array, `.shared` (owner name+email) stripped; `jq empty` OK, pinData empty, secrets grep 0 hits, no PII; `code-reviewer` APPROVED.
 Role: n8n-workflows · Depends on: 1 · Covers: AC15, AC16 (error workflow part), AC9 · Size: S
 Spec: §4 F4, F6; R8; OD1
 

@@ -1,0 +1,129 @@
+{
+  "updatedAt": "2026-10-06T12:32:29.409Z",
+  "createdAt": "2026-10-06T12:32:29.409Z",
+  "id": "FF0x666oa1bfHLDI",
+  "name": "system-error-handler",
+  "description": null,
+  "active": false,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "b1a0c0de-0000-4000-8000-000000000001",
+      "name": "Error handling",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "parameters": {
+        "content": "## Error handling\nNotifies the owner through the n8n execution log only (decision D1). Never sends anything to end users.",
+        "width": 640,
+        "height": 260
+      }
+    },
+    {
+      "id": "b1a0c0de-0000-4000-8000-000000000002",
+      "name": "On workflow error",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        60,
+        100
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "b1a0c0de-0000-4000-8000-000000000003",
+      "name": "Summarize error",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        340,
+        100
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": false,
+        "assignments": {
+          "assignments": [
+            {
+              "id": "a1",
+              "name": "workflowName",
+              "type": "string",
+              "value": "={{ $json.workflow?.name }}"
+            },
+            {
+              "id": "a2",
+              "name": "workflowId",
+              "type": "string",
+              "value": "={{ $json.workflow?.id }}"
+            },
+            {
+              "id": "a3",
+              "name": "executionId",
+              "type": "string",
+              "value": "={{ $json.execution?.id }}"
+            },
+            {
+              "id": "a4",
+              "name": "executionUrl",
+              "type": "string",
+              "value": "={{ $json.execution?.url }}"
+            },
+            {
+              "id": "a5",
+              "name": "failedNode",
+              "type": "string",
+              "value": "={{ $json.execution?.lastNodeExecuted }}"
+            },
+            {
+              "id": "a6",
+              "name": "errorMessage",
+              "type": "string",
+              "value": "={{ $json.execution?.error?.message ?? $json.trigger?.error?.message }}"
+            },
+            {
+              "id": "a7",
+              "name": "occurredAt",
+              "type": "string",
+              "value": "={{ $now.toISO() }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    }
+  ],
+  "connections": {
+    "On workflow error": {
+      "main": [
+        [
+          {
+            "node": "Summarize error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "availableInMCP": true
+  },
+  "staticData": null,
+  "meta": null,
+  "nodeGroups": [],
+  "pinData": null,
+  "versionId": "312f0e45-b396-4b09-8ff1-ca125bf3881b",
+  "activeVersionId": null,
+  "versionCounter": 1,
+  "triggerCount": 0,
+  "sourceWorkflowId": null,
+  "tags": [],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}

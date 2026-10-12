@@ -16,7 +16,7 @@ session. Phase status is updated in place in this file.
 | 5     | Pause and attendant detection                          | n8n-workflows | 3          | S    | DONE     |
 | 6     | Handoff block and media path                           | n8n-workflows | 5          | M    | DONE     |
 | 7     | Debounce (group messages)                              | n8n-workflows | 5          | M    | DONE     |
-| 8     | Conversation session and context                       | n8n-workflows | 7          | M    | PENDING |
+| 8     | Conversation session and context                       | n8n-workflows | 7          | M    | DONE     |
 | 9     | Agent, tools, status routing to handoff                | n8n-workflows | 6, 8       | M    | PENDING |
 | 10    | Reply and close paths (`continua`, `resolvido`)        | n8n-workflows | 9          | S    | PENDING |
 | 11    | Hook routing, import and publish in test mode          | n8n-workflows | 2–10       | S    | PENDING |
@@ -429,7 +429,9 @@ Spec: 4
 
 ### Phase 8 — Conversation session and context
 
-Status: PENDING
+Status: DONE
+Evidence: block 5 added (`5 Nota Conversa e contexto` sticky + `5.1 Buscar conversa`, `5.1 Definir id da conversa`, `5.1 Renovar conversa`, `5.2 Montar contexto`, `5.3 Contexto pronto`), wired from `4.6 Texto pronto`. `jq empty workflows/*.json` passes, `active: false`, 64 nodes with unique names, no dangling connections, no sticky overlap, secrets grep clean. The exact `5.2` Code source was run in node with a stubbed `Date` and mocked `$`: the three spec lines are byte-exact (`2026-10-12 … FERIADO … weekendPrice … sundays_holidays`, `2026-10-13 … weekdayPrice … weekdays`, `2026-10-17 sábado … weekendPrice … weekdays`); `2026-10-13T02:30Z` → `segunda-feira, 12/10/2026, 23:30` (timezone correct); a 21-day calendar from 2026-12-20 crosses the month and year boundary; a holiday on a Sunday gets one `FERIADO` tag; 00:xx prints as `00:xx`; `FERIADOS` with spaces/empties parses. A throw-away Redis key in DB 1 confirmed `set … EX`/`ttl`/`del`. `code-reviewer`: APPROVED. Not done: no live run in n8n (the `conv:` reuse/refresh on a second message is checked in Phase 12).
+Notes: `5.2` is 52 lines (above the ~30-line guideline; single function, readable, kept for testability); the label `(horário de Brasília)` is fixed text while `TIMEZONE` comes from CONFIG; `DIAS_CALENDARIO` has no upper cap; `conv:` is deleted by Phase 6's `7.3 Encerrar conversa` today and by Phase 10 for `resolvido`.
 Role: n8n-workflows · Depends on: 7 · Covers: AC 1–4 (deterministic part), 10, 11 · Size: M
 Spec: 5.1, 5.2
 

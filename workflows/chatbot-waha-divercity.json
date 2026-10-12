@@ -1758,6 +1758,111 @@
         1100,
         1020
       ]
+    },
+    {
+      "parameters": {
+        "content": "## 5 Conversa e contexto — id da conversa com TTL deslizante e calendário que o modelo lê\nReaproveita ou cria o id da conversa (TTL renovado a cada mensagem) e monta a mensagem de sistema com instruções, avisos, data/hora de agora e calendário dos próximos dias.",
+        "height": 420,
+        "width": 1300,
+        "color": 7
+      },
+      "id": "a5f10001-7c21-4b0e-9a11-0d4e5f6a7b01",
+      "name": "5 Nota Conversa e contexto",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        1250
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "propertyName": "conversaExistente",
+        "key": "={{ 'conv:' + $('4.6 Texto pronto').first().json.chatId }}",
+        "keyType": "string",
+        "options": {}
+      },
+      "id": "a5f10002-7c21-4b0e-9a11-0d4e5f6a7b02",
+      "name": "5.1 Buscar conversa",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        0,
+        1390
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ Object.assign({}, $('4.6 Texto pronto').first().json, { conversaId: String($('5.1 Buscar conversa').first().json.conversaExistente ?? '').trim() || ($now.toMillis() + '-' + $execution.id) }) }}",
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "a5f10003-7c21-4b0e-9a11-0d4e5f6a7b03",
+      "name": "5.1 Definir id da conversa",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        220,
+        1390
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "={{ 'conv:' + $('4.6 Texto pronto').first().json.chatId }}",
+        "value": "={{ $('5.1 Definir id da conversa').first().json.conversaId }}",
+        "keyType": "string",
+        "expire": true,
+        "ttl": "={{ Math.max(1, Math.round($('CONFIG').first().json.MEMORIA_TTL_HORAS * 3600)) }}"
+      },
+      "id": "a5f10004-7c21-4b0e-9a11-0d4e5f6a7b04",
+      "name": "5.1 Renovar conversa",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        440,
+        1390
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Monta o contexto do modelo: id da conversa, data/hora de agora e calendário (função pura, sem rede)\nconst A = $('5.1 Definir id da conversa').first().json;\nconst cfg = $('CONFIG').first().json;\nconst instr = $('INSTRUCOES').first().json;\n\nconst DIAS = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];\nconst pad = (n) => String(n).padStart(2, '0');\n\n// Tudo é calculado em função de \"agora\" (Date) e do fuso da CONFIG, nunca do fuso do container\nfunction montarContexto(agora, item, config, instrucoes) {\n  const tz = config.TIMEZONE || 'America/Sao_Paulo';\n  const partes = {};\n  new Intl.DateTimeFormat('en-US', {\n    timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',\n    hour: '2-digit', minute: '2-digit', hourCycle: 'h23',\n  }).formatToParts(agora).forEach((p) => { partes[p.type] = p.value; });\n  const ano = Number(partes.year);\n  const mes = Number(partes.month);\n  const dia = Number(partes.day);\n\n  // dia da semana de uma data (só Y-M-D), via UTC: sem depender de fuso nem de horário de verão\n  const hoje = Date.UTC(ano, mes - 1, dia);\n  const agoraTxt = `AGORA: ${DIAS[new Date(hoje).getUTCDay()]}, ${pad(dia)}/${pad(mes)}/${ano}, ${partes.hour}:${partes.minute} (horário de Brasília)`;\n\n  const feriados = new Set(String(instrucoes.FERIADOS ?? '').split(',').map((s) => s.trim()).filter(Boolean));\n  const total = Math.max(1, Math.floor(Number(config.DIAS_CALENDARIO) || 1));\n  const linhas = [];\n  for (let i = 0; i < total; i++) {\n    const d = new Date(hoje + i * 86400000); // soma de dias na data pura (UTC), sem DST\n    const iso = d.toISOString().slice(0, 10);\n    const dow = d.getUTCDay();\n    const feriado = feriados.has(iso);\n    const fimDeSemana = feriado || dow === 5 || dow === 6 || dow === 0;\n    const preco = fimDeSemana ? 'sexta-a-domingo/feriado (weekendPrice)' : 'segunda-a-quinta (weekdayPrice)';\n    const horario = (feriado || dow === 0) ? 'domingos e feriados (sundays_holidays)' : 'segunda-a-sábado (weekdays)';\n    linhas.push(`${iso} ${DIAS[dow]}${feriado ? ' | FERIADO' : ''} | preço: ${preco} | horário: ${horario}`);\n  }\n\n  const mensagemSistema = instrucoes.PERSONA_E_REGRAS\n    + '\\n\\nFATOS DO PARQUE\\n' + instrucoes.FATOS_DO_PARQUE\n    + '\\n\\nAVISOS DE HOJE\\n' + (instrucoes.AVISOS_DE_HOJE || '(nenhum)')\n    + '\\n\\n' + agoraTxt\n    + '\\n\\nCALENDÁRIO\\n' + linhas.join('\\n');\n\n  return Object.assign({}, item, {\n    sessionKey: `${item.chatId}:${item.conversaId}`,\n    textoCliente: item.texto,\n    mensagemSistema,\n  });\n}\n\nreturn [{ json: montarContexto(new Date(), A, cfg, instr) }];\n"
+      },
+      "id": "a5f10005-7c21-4b0e-9a11-0d4e5f6a7b05",
+      "name": "5.2 Montar contexto",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        1390
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "a5f10006-7c21-4b0e-9a11-0d4e5f6a7b06",
+      "name": "5.3 Contexto pronto",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        880,
+        1390
+      ]
     }
   ],
   "connections": {
@@ -2340,6 +2445,61 @@
         [
           {
             "node": "4.6 Texto pronto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4.6 Texto pronto": {
+      "main": [
+        [
+          {
+            "node": "5.1 Buscar conversa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5.1 Buscar conversa": {
+      "main": [
+        [
+          {
+            "node": "5.1 Definir id da conversa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5.1 Definir id da conversa": {
+      "main": [
+        [
+          {
+            "node": "5.1 Renovar conversa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5.1 Renovar conversa": {
+      "main": [
+        [
+          {
+            "node": "5.2 Montar contexto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5.2 Montar contexto": {
+      "main": [
+        [
+          {
+            "node": "5.3 Contexto pronto",
             "type": "main",
             "index": 0
           }

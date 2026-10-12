@@ -647,11 +647,72 @@
       ]
     },
     {
-      "parameters": {},
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9e3a63e6-ef33-40e5-a3e0-7bfb2ecc9398",
+              "name": "resposta",
+              "value": "={{ $('INSTRUCOES').first().json.MSG_MIDIA }}",
+              "type": "string"
+            },
+            {
+              "id": "3da9e623-290c-4386-aa29-aa1b362a1039",
+              "name": "motivo",
+              "value": "={{ 'cliente enviou ' + $json.tipoLabel }}",
+              "type": "string"
+            },
+            {
+              "id": "e78c8e42-57a5-48e7-843d-574edd5f3770",
+              "name": "resumo",
+              "value": "={{ ['Cliente enviou ' + $json.tipoLabel + ($json.legenda ? ': ' + $json.legenda : '')] }}",
+              "type": "array"
+            },
+            {
+              "id": "005492a2-142a-4525-ab7c-4e9ba2a28106",
+              "name": "ultimoTexto",
+              "value": "={{ $json.legenda }}",
+              "type": "string"
+            },
+            {
+              "id": "9950e64f-cafa-4008-b799-3c0b1dac62ee",
+              "name": "chatId",
+              "value": "={{ $json.chatId }}",
+              "type": "string"
+            },
+            {
+              "id": "423308b4-b5db-4808-9775-b4dcbd5dea82",
+              "name": "telefone",
+              "value": "={{ $json.telefone }}",
+              "type": "string"
+            },
+            {
+              "id": "99322932-fa42-44bf-bb4f-7cf2bf0c6cbc",
+              "name": "nomeContato",
+              "value": "={{ $json.nomeContato }}",
+              "type": "string"
+            },
+            {
+              "id": "367384fa-df33-4e8e-b9be-5bfeea374a26",
+              "name": "ehLid",
+              "value": "={{ $json.ehLid }}",
+              "type": "boolean"
+            },
+            {
+              "id": "9fb92d20-5e00-4d07-bdd1-451161e9dd6e",
+              "name": "sessao",
+              "value": "={{ $json.sessao }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      },
       "id": "09c567bb-67f7-426e-a603-cf2bf2fe0208",
-      "name": "2.3 Mídia recebida",
-      "type": "n8n-nodes-base.noOp",
-      "typeVersion": 1,
+      "name": "2.3 Preparar handoff de mídia",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
       "position": [
         3100,
         580
@@ -1067,6 +1128,335 @@
         3080,
         1000
       ]
+    },
+    {
+      "parameters": {
+        "content": "## 7 Resposta, encerramento e handoff — envia, encerra a conversa ou pausa e chama a equipe\nEnvia a resposta ao cliente, pausa o chat por PAUSA_HORAS, limpa conversa e buffer e avisa o grupo de atendimento.",
+        "height": 420,
+        "width": 2300,
+        "color": 7
+      },
+      "id": "3aaeaea7-aca6-4b24-8b2d-37eb48a239b4",
+      "name": "7 Nota Resposta e handoff",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2300,
+        1250
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3ad1525f-15ff-485b-8b2b-69ee72a4dace",
+              "name": "resposta",
+              "value": "={{ String($json.resposta ?? '').trim() || $('INSTRUCOES').first().json.MSG_HANDOFF_CLIENTE }}",
+              "type": "string"
+            },
+            {
+              "id": "2d6752fe-baa3-4143-afad-51547de19589",
+              "name": "motivo",
+              "value": "={{ String($json.motivo ?? '') }}",
+              "type": "string"
+            },
+            {
+              "id": "84e46d9a-7752-400d-ada9-24ab8ddc3b4b",
+              "name": "resumo",
+              "value": "={{ (Array.isArray($json.resumo) ? $json.resumo : []).map((l) => String(l ?? '').trim()).filter(Boolean).slice(0, 3) }}",
+              "type": "array"
+            },
+            {
+              "id": "25d261d5-c22c-4442-9829-08ec48c41360",
+              "name": "ultimoTexto",
+              "value": "={{ String($json.ultimoTexto ?? '') }}",
+              "type": "string"
+            },
+            {
+              "id": "9f0349d0-ec0c-44ad-991b-95ae0e2b011b",
+              "name": "chatId",
+              "value": "={{ $json.chatId }}",
+              "type": "string"
+            },
+            {
+              "id": "9ae738b4-308c-43d4-a232-c60078069233",
+              "name": "telefone",
+              "value": "={{ String($json.telefone ?? '') }}",
+              "type": "string"
+            },
+            {
+              "id": "b1cab5e1-5f26-4430-8cc5-8fa8785c89f8",
+              "name": "nomeContato",
+              "value": "={{ String($json.nomeContato ?? '') }}",
+              "type": "string"
+            },
+            {
+              "id": "a2eed349-3646-4cd7-b620-4964368d168e",
+              "name": "ehLid",
+              "value": "={{ !!$json.ehLid }}",
+              "type": "boolean"
+            },
+            {
+              "id": "574d0b1e-9135-4c06-a6eb-f10bbb3ad17b",
+              "name": "sessao",
+              "value": "={{ $json.sessao }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "043113d3-c21d-4581-898b-5ddcf518f0cb",
+      "name": "7.3 Preparar handoff",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        2400,
+        1400
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "Stop Typing",
+        "session": "={{ $('CONFIG').first().json.WAHA_SESSION }}",
+        "chatId": "={{ $('7.3 Preparar handoff').first().json.chatId }}",
+        "resource": "Chatting",
+        "requestOptions": {}
+      },
+      "id": "17bcb93d-1173-4a39-90e2-4a7785bb1f66",
+      "name": "7.3 Parar digitação",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        2620,
+        1400
+      ],
+      "credentials": {
+        "wahaApi": {
+          "id": "fLb4y6X1sdRn0lC8",
+          "name": "WAHA account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "Send Text",
+        "session": "={{ $('CONFIG').first().json.WAHA_SESSION }}",
+        "chatId": "={{ $('7.3 Preparar handoff').first().json.chatId }}",
+        "reply_to": "",
+        "text": "={{ $('7.3 Preparar handoff').first().json.resposta }}",
+        "resource": "Chatting",
+        "requestOptions": {}
+      },
+      "id": "a3c15e62-9ab1-4d06-b528-cb424f21c7ca",
+      "name": "7.3 Enviar msg de handoff",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        2840,
+        1400
+      ],
+      "credentials": {
+        "wahaApi": {
+          "id": "fLb4y6X1sdRn0lC8",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "={{ 'bot-msg:' + String((() => { const r = $json.id; return typeof r === 'string' ? r : (r?._serialized ?? r?.id ?? ''); })()).split('_').pop() }}",
+        "value": "1",
+        "keyType": "string",
+        "expire": true,
+        "ttl": 120
+      },
+      "id": "323b8fb5-64c6-4213-b8b0-2a8f0163eb98",
+      "name": "7.3 Registrar msg do bot",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        3060,
+        1400
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "={{ 'pausa:' + $('7.3 Preparar handoff').first().json.chatId }}",
+        "value": "1",
+        "keyType": "string",
+        "expire": true,
+        "ttl": "={{ Math.max(1, Math.round($('CONFIG').first().json.PAUSA_HORAS * 3600)) }}"
+      },
+      "id": "0dbe7c08-e27f-46d4-88b2-6f575dffe3b7",
+      "name": "7.3 Pausar chat",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        3280,
+        1400
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "={{ 'conv:' + $('7.3 Preparar handoff').first().json.chatId }}"
+      },
+      "id": "a1cf27a4-1d59-4dca-86b5-2442eed2ed7f",
+      "name": "7.3 Encerrar conversa",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        3500,
+        1400
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "={{ 'buf:' + $('7.3 Preparar handoff').first().json.chatId }}"
+      },
+      "id": "4739702d-7b11-45bc-9853-949254dfbb2c",
+      "name": "7.3 Limpar buffer",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        3720,
+        1400
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "ee44926e-029e-4f93-ab8e-7500017404a9",
+              "leftValue": "={{ String($('CONFIG').first().json.GRUPO_ATENDIMENTO_ID ?? '').trim() !== '' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "91a48324-be1c-4097-b63a-f470bf6e7e93",
+      "name": "7.3 Tem grupo de atendimento?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3940,
+        1400
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "18496427-fb69-45ef-a598-b45e7feb923d",
+              "name": "evento",
+              "value": "grupo_nao_configurado",
+              "type": "string"
+            },
+            {
+              "id": "2bd9d1f8-1fd2-4313-b69a-56aa76db0396",
+              "name": "detalhe",
+              "value": "aviso ao grupo não enviado: GRUPO_ATENDIMENTO_ID vazio na CONFIG",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "1fbc73a1-6f76-4706-849c-9b77abde9fed",
+      "name": "7.3 Log sem grupo",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        4160,
+        1520
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Monta o texto do aviso ao grupo de atendimento (função pura, sem rede)\nconst h = $('7.3 Preparar handoff').first().json;\nconst cfg = $('CONFIG').first().json;\nconst tel = String(h.telefone ?? '').replace(/\\D/g, '');\n// 55 + DDD + 8 ou 9 dígitos vira +55 DD NNNN(N)-NNNN; outros países ficam só com +\nconst m = tel.match(/^55(\\d{2})(\\d{4,5})(\\d{4})$/);\nconst telFmt = !tel ? '' : m ? `+55 ${m[1]} ${m[2]}-${m[3]}` : `+${tel}`;\nconst nome = String(h.nomeContato ?? '').trim() || 'sem nome';\nconst resumo = (Array.isArray(h.resumo) ? h.resumo : []).map((l) => String(l ?? '').trim()).filter(Boolean).slice(0, 3);\nconst ultimo = String(h.ultimoTexto ?? '').trim();\nconst linhas = ['Atendimento humano necessário', `Cliente: ${nome}${telFmt ? ' — ' + telFmt : ''}`];\n// link só quando habilitado na CONFIG e houver telefone (chat @lid sem alt não tem)\nif (cfg.INCLUIR_LINK_WA && tel) linhas.push(`Conversa: https://wa.me/${tel}`);\nlinhas.push(`Motivo: ${h.motivo ?? ''}`);\nif (resumo.length) linhas.push('Resumo:', ...resumo.map((l) => `• ${l}`));\nif (ultimo) linhas.push(`Última mensagem: \"${ultimo}\"`);\nlinhas.push(`O bot parou de responder este chat por ${cfg.PAUSA_HORAS}h (renova a cada mensagem da atendente).`);\nreturn [{ json: { texto: linhas.join('\\n') } }];\n"
+      },
+      "id": "ea5052b8-db10-4660-8b6e-3913eb2f4273",
+      "name": "7.3 Montar aviso do grupo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        4160,
+        1300
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "Send Text",
+        "session": "={{ $('CONFIG').first().json.WAHA_SESSION }}",
+        "chatId": "={{ $('CONFIG').first().json.GRUPO_ATENDIMENTO_ID }}",
+        "reply_to": "",
+        "text": "={{ $('7.3 Montar aviso do grupo').first().json.texto }}",
+        "resource": "Chatting",
+        "requestOptions": {}
+      },
+      "id": "7b90b597-c895-4d8d-910a-635ec8bc8ad8",
+      "name": "7.3 Avisar grupo",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        4380,
+        1300
+      ],
+      "credentials": {
+        "wahaApi": {
+          "id": "fLb4y6X1sdRn0lC8",
+          "name": "WAHA account"
+        }
+      }
     }
   ],
   "connections": {
@@ -1223,7 +1613,7 @@
         ],
         [
           {
-            "node": "2.3 Mídia recebida",
+            "node": "2.3 Preparar handoff de mídia",
             "type": "main",
             "index": 0
           }
@@ -1398,6 +1788,123 @@
         [
           {
             "node": "2.3 Rotear por tipo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.3 Preparar handoff de mídia": {
+      "main": [
+        [
+          {
+            "node": "7.3 Preparar handoff",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.3 Preparar handoff": {
+      "main": [
+        [
+          {
+            "node": "7.3 Parar digitação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.3 Parar digitação": {
+      "main": [
+        [
+          {
+            "node": "7.3 Enviar msg de handoff",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.3 Enviar msg de handoff": {
+      "main": [
+        [
+          {
+            "node": "7.3 Registrar msg do bot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.3 Registrar msg do bot": {
+      "main": [
+        [
+          {
+            "node": "7.3 Pausar chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.3 Pausar chat": {
+      "main": [
+        [
+          {
+            "node": "7.3 Encerrar conversa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.3 Encerrar conversa": {
+      "main": [
+        [
+          {
+            "node": "7.3 Limpar buffer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.3 Limpar buffer": {
+      "main": [
+        [
+          {
+            "node": "7.3 Tem grupo de atendimento?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.3 Tem grupo de atendimento?": {
+      "main": [
+        [
+          {
+            "node": "7.3 Montar aviso do grupo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "7.3 Log sem grupo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.3 Montar aviso do grupo": {
+      "main": [
+        [
+          {
+            "node": "7.3 Avisar grupo",
             "type": "main",
             "index": 0
           }

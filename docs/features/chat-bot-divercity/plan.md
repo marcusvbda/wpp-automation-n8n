@@ -14,7 +14,7 @@ session. Phase status is updated in place in this file.
 | 3     | Workflow skeleton: config, intake, filters 1–4, types  | n8n-workflows | 1, 2       | M    | DONE    |
 | 4     | Filter 5: only numbers not in the phone's agenda       | n8n-workflows | 1, 3       | S    | DONE    |
 | 5     | Pause and attendant detection                          | n8n-workflows | 3          | S    | DONE     |
-| 6     | Handoff block and media path                           | n8n-workflows | 5          | M    | PENDING |
+| 6     | Handoff block and media path                           | n8n-workflows | 5          | M    | DONE     |
 | 7     | Debounce (group messages)                              | n8n-workflows | 5          | M    | PENDING |
 | 8     | Conversation session and context                       | n8n-workflows | 7          | M    | PENDING |
 | 9     | Agent, tools, status routing to handoff                | n8n-workflows | 6, 8       | M    | PENDING |
@@ -341,7 +341,10 @@ Spec: 3
 
 ### Phase 6 — Handoff block and media path
 
-Status: PENDING
+Status: DONE
+Evidence: `2.3 Mídia recebida` is now `2.3 Preparar handoff de mídia` (Set) → block 7 (`7 Nota Resposta e handoff` sticky, 11 `7.3` nodes): prepare → stop typing → send handoff → register `bot-msg:<MSGID>` (TTL 120) → pause → delete `conv:`/`buf:` → group notice or `Log sem grupo`. `jq empty workflows/*.json` passes, `active: false`, 41 nodes with unique names, no dangling connections, every node inside a sticky and no sticky overlap, no HTTP Request toward WAHA, secrets grep clean. The `Montar aviso do grupo` Code node (19 lines, pure) ran in node on synthetic data: 9-digit and 8-digit BR numbers, foreign number, empty `telefone`, 5-item `resumo`, missing fields, `INCLUIR_LINK_WA` false/true. `code-reviewer`: APPROVED. Not done: no live run in n8n, no message sent (the n8n copy differs from the repo, so it was not imported; the first live run is Phase 11).
+Interpretations: (1) media gets only `MSG_MIDIA`, no second `MSG_HANDOFF_CLIENTE`; (2) `buf:{chatId}` is cleared on handoff; (3) `7.3 Parar digitação` uses `onError: continueRegularOutput` so a typing-indicator failure doesn't block the handoff; the two Send Text nodes keep the default error behavior with no retry; (4) the `bot-msg:` key takes the Send Text response `id` (string `<fromMe>_<chat>_<MSGID>` per the installed OpenAPI, object forms handled) and uses the same last-`_`-segment extraction as the Phase 5 lookup.
+Non-blocking: if `Enviar msg de handoff` fails, pause/conv/buf steps do not run and the chat stays unpaused (the error workflow gets it; pausing first would leave a client silenced without a reply); `Avisar grupo` uses the untrimmed `GRUPO_ATENDIMENTO_ID` while the If tests the trimmed one; `INCLUIR_LINK_WA` is tested by truthiness (typed boolean in CONFIG).
 Role: n8n-workflows · Depends on: 5 · Covers: AC 6, 12, 13 (bot sends don't pause) · Size: M
 Spec: 2.3, 5.1 ("precisa de humano"), 7 (`humano` steps 1–4)
 

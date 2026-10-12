@@ -19,7 +19,7 @@ session. Phase status is updated in place in this file.
 | 8     | Conversation session and context                       | n8n-workflows | 7          | M    | DONE     |
 | 9     | Agent, tools, status routing to handoff                | n8n-workflows | 6, 8       | M    | DONE    |
 | 10    | Reply and close paths (`continua`, `resolvido`)        | n8n-workflows | 9          | S    | DONE    |
-| 11    | Hook routing, import and publish in test mode          | n8n-workflows | 2–10       | S    | PENDING |
+| 11    | Hook routing, import and publish in test mode          | n8n-workflows | 2–10       | S    | DONE    |
 | 12    | Verification and report                                | n8n-workflows | 1–11       | M    | PENDING |
 
 ## Audit — 2026-10-12
@@ -532,7 +532,10 @@ Spec: 5.1 ("dúvidas resolvidas"), 7 (`continua`, `resolvido`)
 
 ### Phase 11 — Hook routing, import and publish in test mode
 
-Status: PENDING
+Status: DONE
+Evidence (2026-10-13): `docker-compose.yml` `WHATSAPP_HOOK_URL` → `33e5dd5f-b628-4552-ba1c-d5cf09b54deb/waha`, `docker compose config -q` passes; workflow `chatbot-waha-divercity` (83 nodes) published (`active = t`) in test mode (`MODO_TESTE = true`, `ALLOWLIST` and the real token pasted in the n8n editor only; the repo copy keeps `COLE_O_TOKEN_AQUI` and empty lists, secrets grep clean); `waha` session `Default` `WORKING`. Live test chat (allowlisted number): the bot answered "Quanto é a entrada?" with the API prices (12/10 holiday → `weekendPrice`, 12h–20h), execution 183 `success` in 14.3 s (5 s debounce + ~8 s agent); the bot's own `fromMe` messages did not pause the chat (AC 13); a handoff reached the group (AC 12 notice).
+Defects found and fixed by the first live runs (Phase 9 follow-ups, in the same commit): (1) `toolHttpRequest` 1.1 cannot be run by agent 3.1 in n8n 2.41.7 (`has a "supplyData" method but no "execute" method`), so `consultar_passaportes` / `consultar_horarios` are now `n8n-nodes-base.httpRequestTool` 4.5 with `neverError: true` and the same names and manual descriptions; (2) the model answered in plain text and the structured parser failed (`Model output doesn't fit required format`), so `6.1 Ler resposta estruturada` has `autoFix: true` and `6.1 Modelo OpenAI` is also wired to it through `ai_languageModel`; a failed auto-fix still ends in `6.3` (handoff). Also applied: repo `settings` `binaryMode: separate` + `availableInMCP: true` (D6-A).
+Open findings for the owner: (a) the model closed the conversation with `resolvido` on the first price answer ("Qualquer dúvida é só chamar!"), which deletes `conv:`, so a follow-up like "terça" starts a new context; the persona text is spec Annex A, so changing it is the owner's call; (b) typing indicator lasts the whole run (about 14 s: it starts before the 5 s debounce); `DEBOUNCE_SEGUNDOS` in `CONFIG` is the no-code knob, or Start Typing can move after the wait (a Phase 7 change); (c) `/tmp/divercity-import.json` and `/tmp/divercity-patched.json` remain inside the n8n container (contain the pasted values; `rm` is denied).
 Role: n8n-workflows · Depends on: 2–10 · Covers: enables the live AC runs · Size: S
 Spec: 2.1, 10
 

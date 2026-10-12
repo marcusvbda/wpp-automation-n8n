@@ -1951,7 +1951,7 @@
       "parameters": {
         "schemaType": "manual",
         "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"resposta\": {\n      \"type\": \"string\"\n    },\n    \"status\": {\n      \"type\": \"string\",\n      \"enum\": [\n        \"continua\",\n        \"resolvido\",\n        \"humano\"\n      ]\n    },\n    \"motivo\": {\n      \"type\": \"string\"\n    },\n    \"resumo\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"maxItems\": 3\n    }\n  },\n  \"required\": [\n    \"resposta\",\n    \"status\"\n  ]\n}",
-        "autoFix": false
+        "autoFix": true
       },
       "name": "6.1 Ler resposta estruturada",
       "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
@@ -1968,20 +1968,26 @@
         "method": "GET",
         "url": "={{ $('CONFIG').first().json.API_BASE_URL }}{{ $('CONFIG').first().json.PATH_PRECOS }}?type=passaportes&perPage=100",
         "sendHeaders": true,
-        "specifyHeaders": "keypair",
-        "parametersHeaders": {
-          "values": [
+        "headerParameters": {
+          "parameters": [
             {
               "name": "Authorization",
-              "valueProvider": "fieldValue",
               "value": "=Bearer {{ $('CONFIG').first().json.SITE_API_TOKEN }}"
             }
           ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
         }
       },
       "name": "consultar_passaportes",
-      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
-      "typeVersion": 1.1,
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.5,
+      "onError": "continueRegularOutput",
       "position": [
         1760,
         1610
@@ -1994,20 +2000,26 @@
         "method": "GET",
         "url": "={{ $('CONFIG').first().json.API_BASE_URL }}{{ $('CONFIG').first().json.PATH_HORARIOS }}?perPage=100",
         "sendHeaders": true,
-        "specifyHeaders": "keypair",
-        "parametersHeaders": {
-          "values": [
+        "headerParameters": {
+          "parameters": [
             {
               "name": "Authorization",
-              "valueProvider": "fieldValue",
               "value": "=Bearer {{ $('CONFIG').first().json.SITE_API_TOKEN }}"
             }
           ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true
+            }
+          }
         }
       },
       "name": "consultar_horarios",
-      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
-      "typeVersion": 1.1,
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.5,
+      "onError": "continueRegularOutput",
       "position": [
         1900,
         1610
@@ -3190,6 +3202,11 @@
             "node": "6.1 Responder cliente",
             "type": "ai_languageModel",
             "index": 0
+          },
+          {
+            "node": "6.1 Ler resposta estruturada",
+            "type": "ai_languageModel",
+            "index": 0
           }
         ]
       ]
@@ -3318,6 +3335,8 @@
   },
   "settings": {
     "executionOrder": "v1",
-    "errorWorkflow": "FF0x666oa1bfHLDI"
+    "errorWorkflow": "FF0x666oa1bfHLDI",
+    "binaryMode": "separate",
+    "availableInMCP": true
   }
 }

@@ -636,17 +636,6 @@
       ]
     },
     {
-      "parameters": {},
-      "id": "06cf8f02-5df3-4cb1-b60f-a8aa8bc90f0f",
-      "name": "2.3 Texto aceito",
-      "type": "n8n-nodes-base.noOp",
-      "typeVersion": 1,
-      "position": [
-        3100,
-        420
-      ]
-    },
-    {
       "parameters": {
         "assignments": {
           "assignments": [
@@ -1457,6 +1446,318 @@
           "name": "WAHA account"
         }
       }
+    },
+    {
+      "parameters": {
+        "content": "## 4 Agrupar mensagens — espera DEBOUNCE_SEGUNDOS, só a última mensagem segue\nGuarda cada texto no buffer do chat, espera e deixa só a última mensagem juntar os textos do buffer; o chat pausado nesse meio tempo (mídia) encerra em silêncio.",
+        "height": 420,
+        "width": 1620,
+        "color": 7
+      },
+      "id": "a4f10001-7c21-4b0e-9a11-0d4e5f6a7b01",
+      "name": "4 Nota Agrupar mensagens",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        740
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "push",
+        "list": "={{ 'buf:' + $('2.3 Rotear por tipo').first().json.chatId }}",
+        "messageData": "={{ String($('2.3 Rotear por tipo').first().json.texto ?? '') }}",
+        "tail": true
+      },
+      "id": "a4f10002-7c21-4b0e-9a11-0d4e5f6a7b02",
+      "name": "4.1 Guardar texto no buffer",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        0,
+        880
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "={{ 'ultima:' + $('2.3 Rotear por tipo').first().json.chatId }}",
+        "value": "={{ $('2.3 Rotear por tipo').first().json.idMensagem }}",
+        "keyType": "string",
+        "expire": true,
+        "ttl": "={{ Math.max(1, Math.round($('CONFIG').first().json.MEMORIA_TTL_HORAS * 3600)) }}"
+      },
+      "id": "a4f10003-7c21-4b0e-9a11-0d4e5f6a7b03",
+      "name": "4.1 Marcar última mensagem",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        220,
+        880
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Send Seen",
+        "session": "={{ $('CONFIG').first().json.WAHA_SESSION }}",
+        "chatId": "={{ $('2.3 Rotear por tipo').first().json.chatId }}",
+        "messageId": "={{ $('2.3 Rotear por tipo').first().json.idMensagem }}",
+        "participant": "",
+        "requestOptions": {}
+      },
+      "id": "a4f10004-7c21-4b0e-9a11-0d4e5f6a7b04",
+      "name": "4.2 Marcar como vista",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        440,
+        880
+      ],
+      "credentials": {
+        "wahaApi": {
+          "id": "fLb4y6X1sdRn0lC8",
+          "name": "WAHA account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Start Typing",
+        "session": "={{ $('CONFIG').first().json.WAHA_SESSION }}",
+        "chatId": "={{ $('2.3 Rotear por tipo').first().json.chatId }}",
+        "requestOptions": {}
+      },
+      "id": "a4f10005-7c21-4b0e-9a11-0d4e5f6a7b05",
+      "name": "4.2 Começar digitação",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        660,
+        880
+      ],
+      "credentials": {
+        "wahaApi": {
+          "id": "fLb4y6X1sdRn0lC8",
+          "name": "WAHA account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resume": "timeInterval",
+        "amount": "={{ $('CONFIG').first().json.DEBOUNCE_SEGUNDOS }}",
+        "unit": "seconds"
+      },
+      "id": "a4f10006-7c21-4b0e-9a11-0d4e5f6a7b06",
+      "name": "4.3 Esperar debounce",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        880
+      ],
+      "webhookId": "a4f1000b-7c21-4b0e-9a11-0d4e5f6a7b0b"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "propertyName": "ultima",
+        "key": "={{ 'ultima:' + $('2.3 Rotear por tipo').first().json.chatId }}",
+        "keyType": "string",
+        "options": {}
+      },
+      "id": "a4f10007-7c21-4b0e-9a11-0d4e5f6a7b07",
+      "name": "4.4 Buscar última mensagem",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        880
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b4f10001-7c21-4b0e-9a11-0d4e5f6a7c01",
+              "leftValue": "={{ String($('4.4 Buscar última mensagem').first().json.ultima ?? '') === String($('2.3 Rotear por tipo').first().json.idMensagem ?? '') }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a4f10008-7c21-4b0e-9a11-0d4e5f6a7b08",
+      "name": "4.4 É a última mensagem?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1320,
+        880
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "propertyName": "pausa",
+        "key": "={{ 'pausa:' + $('2.3 Rotear por tipo').first().json.chatId }}",
+        "keyType": "string",
+        "options": {}
+      },
+      "id": "a4f10009-7c21-4b0e-9a11-0d4e5f6a7b09",
+      "name": "4.5 Buscar pausa de novo",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        0,
+        1020
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b4f10002-7c21-4b0e-9a11-0d4e5f6a7c02",
+              "leftValue": "={{ !$('4.5 Buscar pausa de novo').first().json.pausa }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a4f1000a-7c21-4b0e-9a11-0d4e5f6a7b0a",
+      "name": "4.5 Ainda sem pausa?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        220,
+        1020
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "propertyName": "lista",
+        "key": "={{ 'buf:' + $('2.3 Rotear por tipo').first().json.chatId }}",
+        "keyType": "list",
+        "options": {}
+      },
+      "id": "a4f1000c-7c21-4b0e-9a11-0d4e5f6a7b0c",
+      "name": "4.5 Ler buffer",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        440,
+        1020
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "={{ 'buf:' + $('2.3 Rotear por tipo').first().json.chatId }}"
+      },
+      "id": "a4f1000d-7c21-4b0e-9a11-0d4e5f6a7b0d",
+      "name": "4.5 Apagar buffer",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        660,
+        1020
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ Object.assign({}, $('2.3 Rotear por tipo').first().json, { texto: (Array.isArray($('4.5 Ler buffer').first().json.lista) && $('4.5 Ler buffer').first().json.lista.length) ? $('4.5 Ler buffer').first().json.lista.join('\\n') : $('2.3 Rotear por tipo').first().json.texto }) }}",
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "a4f1000e-7c21-4b0e-9a11-0d4e5f6a7b0e",
+      "name": "4.5 Juntar textos",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        880,
+        1020
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "a4f1000f-7c21-4b0e-9a11-0d4e5f6a7b0f",
+      "name": "4.6 Texto pronto",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        1020
+      ]
     }
   ],
   "connections": {
@@ -1606,7 +1907,7 @@
       "main": [
         [
           {
-            "node": "2.3 Texto aceito",
+            "node": "4.1 Guardar texto no buffer",
             "type": "main",
             "index": 0
           }
@@ -1905,6 +2206,140 @@
         [
           {
             "node": "7.3 Avisar grupo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4.1 Guardar texto no buffer": {
+      "main": [
+        [
+          {
+            "node": "4.1 Marcar última mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4.1 Marcar última mensagem": {
+      "main": [
+        [
+          {
+            "node": "4.2 Marcar como vista",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4.2 Marcar como vista": {
+      "main": [
+        [
+          {
+            "node": "4.2 Começar digitação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4.2 Começar digitação": {
+      "main": [
+        [
+          {
+            "node": "4.3 Esperar debounce",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4.3 Esperar debounce": {
+      "main": [
+        [
+          {
+            "node": "4.4 Buscar última mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4.4 Buscar última mensagem": {
+      "main": [
+        [
+          {
+            "node": "4.4 É a última mensagem?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4.4 É a última mensagem?": {
+      "main": [
+        [
+          {
+            "node": "4.5 Buscar pausa de novo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "4.5 Buscar pausa de novo": {
+      "main": [
+        [
+          {
+            "node": "4.5 Ainda sem pausa?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4.5 Ainda sem pausa?": {
+      "main": [
+        [
+          {
+            "node": "4.5 Ler buffer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "4.5 Ler buffer": {
+      "main": [
+        [
+          {
+            "node": "4.5 Apagar buffer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4.5 Apagar buffer": {
+      "main": [
+        [
+          {
+            "node": "4.5 Juntar textos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4.5 Juntar textos": {
+      "main": [
+        [
+          {
+            "node": "4.6 Texto pronto",
             "type": "main",
             "index": 0
           }

@@ -15,7 +15,7 @@ session. Phase status is updated in place in this file.
 | 4     | Filter 5: only numbers not in the phone's agenda       | n8n-workflows | 1, 3       | S    | DONE    |
 | 5     | Pause and attendant detection                          | n8n-workflows | 3          | S    | DONE     |
 | 6     | Handoff block and media path                           | n8n-workflows | 5          | M    | DONE     |
-| 7     | Debounce (group messages)                              | n8n-workflows | 5          | M    | PENDING |
+| 7     | Debounce (group messages)                              | n8n-workflows | 5          | M    | DONE     |
 | 8     | Conversation session and context                       | n8n-workflows | 7          | M    | PENDING |
 | 9     | Agent, tools, status routing to handoff                | n8n-workflows | 6, 8       | M    | PENDING |
 | 10    | Reply and close paths (`continua`, `resolvido`)        | n8n-workflows | 9          | S    | PENDING |
@@ -397,7 +397,11 @@ Spec: 2.3, 5.1 ("precisa de humano"), 7 (`humano` steps 1–4)
 
 ### Phase 7 — Debounce (group messages)
 
-Status: PENDING
+Status: DONE
+Evidence: `2.3 Texto aceito` replaced by block 4 (`4 Nota Agrupar mensagens` sticky + 13 nodes): push to `buf:{chatId}` → `ultima:{chatId}` → Send Seen / Start Typing → Wait `DEBOUNCE_SEGUNDOS` → last-message check → pause re-check → read/delete buffer → join → `4.6 Texto pronto`. `jq empty workflows/*.json` passes, `active: false`, no duplicate names, no dangling connections, no sticky overlap, secrets grep clean. Expressions run in node on synthetic items (same/newer id, paused/not paused, list of 3, `[]`, `null`); a throw-away list key in Redis DB 1 confirmed `rpush`/`lrange`/`del` semantics. Installed `Redis.node.js` read: `get` returns one new item `{propertyName: value}` (missing list → `[]`), `push`/`set`/`delete` return the input item, `push` has no expire; Wait 1.1 under 65 s stays in-process. `code-reviewer`: APPROVED. Not done: no live run in n8n and no message sent.
+Interpretations: every expression is anchored on `$('2.3 Rotear por tipo').first().json` because Redis `get` replaces the item; Send Seen / Start Typing use `CONFIG.WAHA_SESSION` and `onError: continueRegularOutput`; Start Typing is stopped by the send nodes of blocks 7.1/7.2/7.3 (7.3 already does).
+Correction to the Phase 5 note: `3.2 Restaurar mensagem` is **required** (Redis `get` replaces the item), not redundant.
+Open findings (outside this phase's contract, for the owner): (1) `buf:{chatId}` has no TTL (`push` can't set one) and `3.1 Pausar chat` does not clear it, so a text waiting when the attendant pauses the chat leaves its text in the list and it is joined into the first message after the pause expires. Options: delete `buf:` in `3.1 Pausar chat`, or add a TTL step after the push; recommendation: clear `buf:` on the attendant pause (small, Phase 5 file). (2) If the winner crashes after `4.5 Apagar buffer`, that batch is lost (the error workflow fires). (3) `DEBOUNCE_SEGUNDOS` ≥ 65 moves the wait to the database; keep it under 65.
 Role: n8n-workflows · Depends on: 5 · Covers: AC 14, 6 (text then audio < 5 s) · Size: M
 Spec: 4
 

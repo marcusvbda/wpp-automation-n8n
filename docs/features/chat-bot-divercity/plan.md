@@ -1,0 +1,527 @@
+# Plan — Divercity Park WhatsApp service bot ("Dry")
+
+Source spec: `docs/features/chat-bot-divercity/spec.md` · SHA-256 `46b9827c2b7692cc9f9a527763108c2bd0504b14c5f629a26e9ec2c67f0ce756`
+Product truth: the spec itself (no separate product doc).
+Run phases with `/execute-phases docs/features/chat-bot-divercity/plan.md <phases>` — one or a few per
+session. Phase status is updated in place in this file.
+
+## Status board
+
+| Phase | Title                                                  | Role          | Depends on | Size | Status  |
+| ----- | ------------------------------------------------------ | ------------- | ---------- | ---- | ------- |
+| 1     | Live probe: payload fields, contact signal, node types | n8n-workflows | none       | S    | IN_PROGRESS |
+| 2     | Redis credential for the bot                           | node-service  | none       | S    | DONE    |
+| 3     | Workflow skeleton: config, intake, filters 1–4, types  | n8n-workflows | 1, 2       | M    | PENDING |
+| 4     | Filter 5: only numbers not in the phone's agenda       | n8n-workflows | 1, 3       | S    | PENDING |
+| 5     | Pause and attendant detection                          | n8n-workflows | 3          | S    | PENDING |
+| 6     | Handoff block and media path                           | n8n-workflows | 5          | M    | PENDING |
+| 7     | Debounce (group messages)                              | n8n-workflows | 5          | M    | PENDING |
+| 8     | Conversation session and context                       | n8n-workflows | 7          | M    | PENDING |
+| 9     | Agent, tools, status routing to handoff                | n8n-workflows | 6, 8       | M    | PENDING |
+| 10    | Reply and close paths (`continua`, `resolvido`)        | n8n-workflows | 9          | S    | PENDING |
+| 11    | Hook routing, import and publish in test mode          | n8n-workflows | 2–10       | S    | PENDING |
+| 12    | Verification and report                                | n8n-workflows | 1–11       | M    | PENDING |
+
+## Audit — 2026-10-12
+
+| Check | Result |
+| ----- | ------ |
+| Stack | Up (owner ran `docker compose up -d`): n8n, n8n-worker, postgres, redis, waha. `docker compose config -q` OK, `jq empty workflows/*.json` OK. |
+| Images | `n8nio/n8n:2.41.7` (main + worker), `devlikeapro/waha:noweb-arm-2026.9.2`, `postgres:17.11-alpine`, `redis:8.10.2-alpine`. |
+| n8n | 2.41.7, `EXECUTIONS_MODE=queue`, `GENERIC_TIMEZONE=America/Sao_Paulo` (spec 0.6 / 10 OK). |
+| WAHA server | 2026.9.2, CORE tier, engine NOWEB. One session, name **`Default`** (capital D), status WORKING, `config.noweb.store = {enabled: true, fullSync: true}`, no session-level webhooks. |
+| WAHA hook | Global `WHATSAPP_HOOK_URL` in `docker-compose.yml` → `/webhook/d8dddf0c-…/waha` (car-rental trigger), `WHATSAPP_HOOK_EVENTS=message.any`. Only one global URL (D2). |
+| WAHA n8n nodes | `@devlikeapro/n8n-nodes-waha` **2025.2.9** (bundled OpenAPI 2025.2.5), nodes `wahaTrigger` / `WAHA` typeVersion 202502. Present: Chatting → Send Seen, Start Typing, Stop Typing, Send Text; Contacts → Get, Get All, Check Exists. **No LID endpoints** in this node version (the server has `/api/{session}/lids/...`). |
+| `isMyContact` | **Not returned on NOWEB.** Contacts → Get returns only `id, lid, name, phoneNumber`; Get All adds `pushname, verifiedName`. Sample of 1000: `name` set on 215 (likely address-book name), `pushname` on 829, `phoneNumber` on 200, `@lid` contacts with `phoneNumber`: 0. The WAHA docs (`/docs/how-to/contacts/`) show `isMyContact` in the example response and mark `GET /api/contacts` as supported on all engines (NOWEB: store required, which is on), but they don't say which fields each engine fills. The live server's OpenAPI has no typed contact schema with `isMyContact`. So the field exists in the API's shape (WEBJS-style example), and NOWEB doesn't fill it (D3). |
+| n8n credentials | `OpenAI account`, `Postgres account`, `WAHA account`, `WAHA webhook secret` (httpHeaderAuth, not in repo), `n8n Assistant model`. **No Redis credential** (Phase 2). |
+| Workflows in n8n | `chatbot-waha-car-rental` (unpublished), `chatbot-waha-car-rental-guards` (unpublished, not in repo), `system-error-handler` (`FF0x666oa1bfHLDI`, error workflow), 3 study workflows. None with the new bot's id. |
+| Repo convention | `workflows/chatbot-waha-car-rental.json`: Set nodes normalize the WAHA payload right after the trigger, `settings.errorWorkflow = FF0x666oa1bfHLDI`, credentials by `{id, name}`. Its trigger uses output index 3 for its event. (It uses English names, but this workflow is all-Portuguese by D1.) |
+| Scripts / checks | No `package.json`, so no npm scripts. Checks that exist: `jq empty workflows/*.json`, the secrets grep from `project-core`, `docker compose config -q`. `scripts/setup.sh` creates credentials when missing (pattern for Phase 2) and imports workflows by id when missing. |
+| `.env` | Not readable in this session (permission). Key names from `.env.example` only. No new `.env` key needed (`REDIS_PASSWORD` already exists). |
+| Gaps vs spec | `isMyContact` missing (D3). Session name is `Default`, not `default`. No LID → phone operation in the native node (spec 2 worst case: name only, no link). No webhook HMAC configured (D5). |
+
+## Owner decisions
+
+### D1 — Language of the workflow's identifiers — RESOLVED 2026-10-12: all Portuguese
+
+Owner: "tudo em português, porque vai ser usado por um brasileiro e precisa ser de fácil manuseio".
+Everything inside the workflow is pt-BR: node names, sticky notes, CONFIG/INSTRUCOES keys (spec names verbatim), normalized field names, Redis keys (spec names), log events and Code node comments. WAHA/n8n terms the spec itself uses stay as they are (`chatId`, `fromMe`, `source`, `hasMedia`, `sessionKey`). This is an explicit owner exception to the `CLAUDE.md` language rule, **for this workflow only**. This plan's prose and commit messages stay English. The exact names are in "Global constraints → Names".
+
+### D2 — How WAHA events reach the new workflow — RESOLVED 2026-10-12: option A
+
+Repoint the global `WHATSAPP_HOOK_URL` in `docker-compose.yml` to the new trigger and recreate only the `waha` container. Car-rental stays in n8n, unpublished and untouched. (Phase 11.)
+
+### D3 — Signal for "number saved in the phone's agenda" — RESOLVED 2026-10-12: option A, conditional
+
+Use the native Contacts → Get and treat a non-empty `name` as "saved", failing closed, with `CONTATOS_IGNORADOS` as an extra manual list. **Condition:** Phase 1 must show `name` non-empty for the saved test number and empty for the unsaved one, including the `@lid` form if the test chat is `@lid`. If it doesn't, Phase 4 becomes `BLOCKED (D3)` and the executor stops and asks the owner again. Remaining options then: switch the engine to WEBJS, tested first on a second test session (image tag change); `CONTATOS_IGNORADOS` only; or upgrade the WAHA node package. This is a spec deviation (`isMyContact` → `name`), so a `Deviation:` note goes in the Phase 12 report.
+
+### D4 — Message types the spec does not list — RESOLVED 2026-10-12: option A
+
+Reactions, polls, protocol messages (edit/delete/revoke), empty texts and unknown types → ignore silently, with no reply, no handoff and no pause.
+
+### D5 — Inbound webhook authentication — not asked; default A (defer)
+
+Keep parity with car-rental: native WAHA Trigger, n8n bound to `127.0.0.1`, internal Docker network. Revisit at production deploy (WAHA webhook HMAC). Blocks nothing. The owner can override.
+
+## Global constraints (every phase)
+
+- **One workflow** `workflows/chatbot-waha-divercity.json`, `name` `chatbot-waha-divercity`, stable workflow `id` and node `id`s/positions (generated once in Phase 3). `settings`: `{"executionOrder":"v1","errorWorkflow":"FF0x666oa1bfHLDI"}`. The workflow stays **unpublished** until Phase 11.
+- **Blocks with sticky notes** (spec 0.1): every block has a Sticky Note (pt-BR) with a title and a one-line purpose that encloses its nodes. Every node name starts with its block number, except `CONFIG` and `INSTRUCOES`. These two run right after the trigger, so `$('CONFIG').first().json` / `$('INSTRUCOES').first().json` are always available. Inside AI sub-nodes and tools, use `.first()`, never `.item`.
+- **Native WAHA nodes only** (spec 0.2): `@devlikeapro/n8n-nodes-waha.wahaTrigger` / `.WAHA` v202502, credential `{"wahaApi":{"id":"fLb4y6X1sdRn0lC8","name":"WAHA account"}}`. No HTTP Request or generic Webhook toward WAHA. If an operation is missing, stop and report it.
+- **Nothing hardcoded** (spec 0.3): every value that differs between test and production lives in `CONFIG`/`INSTRUCOES`. Derived TTLs (`× 3600`) are computed in expressions. No phone numbers, group ids or tokens in JSON. The repo copy always has `SITE_API_TOKEN = "COLE_O_TOKEN_AQUI"` and empty `ALLOWLIST`, `CONTATOS_IGNORADOS`, `GRUPO_ATENDIMENTO_ID`.
+- **Token safety**: the real site token is pasted only in the n8n editor. Before any re-export from n8n into the repo, reset `SITE_API_TOKEN`, `ALLOWLIST`, `CONTATOS_IGNORADOS` and `GRUPO_ATENDIMENTO_ID` to the repo values. Never re-import over an n8n copy without first diffing it against the repo, because the owner's UI edits win (`CLAUDE.md`).
+- **Never invent** (spec 0.5): any failure, empty response or doubt goes to the handoff.
+- **Timezone** (spec 0.6): date logic uses `CONFIG.TIMEZONE` explicitly (`America/Sao_Paulo`). `GENERIC_TIMEZONE` is already set.
+- **Redis**: core `n8n-nodes-base.redis` and `memoryRedisChat`, credential `Redis account` (Phase 2, DB index 1, isolated from the Bull queue on DB 0).
+- **Names (D1, Portuguese)**:
+  - `CONFIG` keys = spec 1.1 verbatim, with the spec's initial values, except `WAHA_SESSION = "Default"` (from the audit). Types: booleans for `INCLUIR_LINK_WA` and `MODO_TESTE`, numbers for numeric fields, strings otherwise.
+  - `INSTRUCOES` keys = spec 1.2 verbatim: `PERSONA_E_REGRAS`, `FATOS_DO_PARQUE`, `AVISOS_DE_HOJE`, `FERIADOS`, `MSG_HANDOFF_CLIENTE`, `MSG_MIDIA`.
+  - Normalized message fields: `idMensagem`, `sessao`, `fromMe`, `source`, `chatId`, `timestamp`, `tipo`, `tipoLabel`, `texto`, `legenda`, `nomeContato`, `telefone`, `ehLid`.
+  - `tipo` values: `texto`, `audio`, `imagem`, `video`, `documento`, `localizacao`, `contato`, `figurinha`, `ignorar`.
+  - Redis keys (spec): `pausa:{chatId}`, `buf:{chatId}`, `ultima:{chatId}`, `conv:{chatId}`, `bot-msg:{id}`, plus `entrega:{idMensagem}` (dedupe, repo idempotency invariant).
+  - Handoff contract fields: `resposta`, `motivo`, `resumo`, `ultimoTexto`. Context fields: `conversaId`, `sessionKey`, `textoCliente`, `mensagemSistema`.
+  - Agent output contract and tool names: spec verbatim (`resposta/status/motivo/resumo`, `continua/resolvido/humano`, `consultar_passaportes`, `consultar_horarios`).
+- **Logging** ("registrar no log", spec 2/7): a Set node named `<block> Log <motivo>` with `{ evento, detalhe }` ends the branch, so the n8n execution record shows it. No extra store.
+- **Test safety**: live sends only to the owner's allow-listed test chats. While developing, `GRUPO_ATENDIMENTO_ID` is empty or a test-only group of the owner. No loops or bulk sends. Manual runs use pinned sample payloads that are never committed (`pinData` stripped).
+- **Scope**: no party-price tool (spec 8), no audio transcription, no reactivation command, no Google Calendar.
+- Git read-only, no dependency/image/version changes, no tests written (`CLAUDE.md`).
+
+## Acceptance-criteria coverage
+
+| AC (spec 9) | Phases |
+| ----------- | ------ |
+| 1 Price without a date asks for the day / correct tier | 8, 9, 12 |
+| 2 Today 12/10 holiday → `weekendPrice`, 12h–20h | 8, 9, 12 |
+| 3 Tuesday `weekdayPrice`, Saturday `weekendPrice` | 8, 9, 12 |
+| 4 "Open now?" uses Brasília time | 8, 9, 12 |
+| 5 Party → `humano`, no party price | 9, 12 |
+| 6 Media → `MSG_MIDIA` + one handoff; silence while paused; sticker ignored; text+audio < 5 s → handoff only | 3, 5, 6, 7, 12 |
+| 7 Unknown number answered; saved number ignored | 4, 12 |
+| 8 Allowlist number in test mode skips the contact filter | 4, 12 |
+| 9 Contact lookup failure → ignored and logged | 4, 12 |
+| 10 `resolvido` → farewell, `conv` deleted, no pause; later the bot introduces itself again | 8, 10, 12 |
+| 11 Silence for `MEMORIA_TTL_HORAS` → new conversation | 8, 12 |
+| 12 Handoff → group notice with name, link and summary; pause; back in a new conversation after expiry | 5, 6, 12 |
+| 13 Attendant typing pauses; bot API message does not | 5, 6, 10, 12 |
+| 14 Three messages within 5 s → one reply | 7, 12 |
+| 15 Wrong token (401) / API down → `humano`, no invented price | 9, 12 |
+| 16 Team-group message ignored; non-allowlisted number in test mode ignored | 3, 12 |
+| 17 Old (replayed) message ignored | 3, 12 |
+
+## Phases
+
+### Phase 1 — Live probe: payload fields, contact signal, node types
+
+Status: IN_PROGRESS
+Role: n8n-workflows · Depends on: none · Covers: prerequisite for AC 6, 7, 8, 9, 13 · Size: S
+Spec: 2, 2.3, 3.1, 6, 10
+
+**Goal.** Record the facts later phases depend on: real field paths in the WAHA message payload, whether `name` from Contacts → Get separates saved from unsaved numbers (the D3 condition), and the exact n8n node types/versions to use. Read-only. The only file written is this plan.
+
+**Contract.**
+
+- All output is sanitized: print **keys, types and counts, never values** (no numbers, names or texts). Run WAHA API calls inside the `waha` container using its own `$WAHA_API_KEY`, never printed. For example: `docker compose exec -T waha sh -c 'curl -s -H "X-Api-Key: $WAHA_API_KEY" "http://localhost:3000/api/..."' | jq '<keys only>'`. The live OpenAPI is at `/-json` with dashboard basic auth (`$WAHA_DASHBOARD_USERNAME:$WAHA_DASHBOARD_PASSWORD`).
+- The owner helps from the test phones: they (a) send a text, an audio, an image and a sticker to the session number from a test number that **is saved** in the park phone's agenda, (b) send a text from a test number that **is not saved**, (c) type a reply on the park phone in chat (a). The executor sends **one** text through the WAHA API to test chat (a) only.
+- Facts to record (in "Audit — Phase 1 findings", appended below the audit table):
+  1. Message fields (via `GET /api/{session}/chats/{chatId}/messages` or `GET /api/messages`): paths for id, `fromMe`, `from`/`to`, `timestamp` unit, `hasMedia`, `_data.message` key per type (text, audio/ptt, image, sticker), caption path, contact display name (`_data.pushName`/`notifyName`), whether `source` exists and what it is for the API send vs. the phone-typed reply, and for `@lid` chats, any field carrying the real phone (`_data.key.remoteJidAlt`, `senderPn`, …).
+  2. **D3 condition**: Contacts → Get for (a) and (b), plus the `@lid` form if the chat is `@lid`. Is `name` non-empty for the saved number and empty for the unsaved one? Record PASS/FAIL. On FAIL, set Phase 4 to `BLOCKED (D3)` and ask the owner.
+  3. WAHA Trigger 2025.2.9: the parameter that selects events, and the output index that carries `message.any` (read `dist/nodes/WAHA/v202502/WAHATriggerV202502.js` under `n8n-data/nodes/node_modules/@devlikeapro/n8n-nodes-waha`).
+  4. n8n 2.41.7 node types and latest typeVersions for: Redis, Redis Chat Memory, AI Agent, OpenAI Chat Model, Structured Output Parser, HTTP Request Tool (`toolHttpRequest` vs `httpRequestTool`), Wait, Switch, If, Filter, Set, Code (context7 + the n8n container's `node_modules`). Also: can the OpenAI model name be an expression?
+
+**Steps.**
+
+1. Confirm the stack is up (`docker compose ps`). Do not restart anything.
+2. Ask the owner to do the phone actions, and wait for confirmation.
+3. Collect facts 1–4 with sanitized queries.
+4. Append the findings to this plan and report the D3 result to the owner.
+
+**Done when.**
+
+- The findings section exists with facts 1–4, and contains no PII or secret values.
+- The D3 condition is recorded PASS/FAIL, and Phase 4's status is updated to match.
+- `jq empty workflows/*.json` passes (unchanged).
+
+**Not in this phase.** Any workflow file, compose change or credential.
+
+### Phase 2 — Redis credential for the bot
+
+Status: DONE
+Evidence: `scripts/setup.sh` got `CRED_REDIS_ID=rD7k2Mx9QpL4vWn3` and a create-if-missing `add_cred` (host `redis`, port 6379, password from `REDIS_PASSWORD`, database 1). `bash -n scripts/setup.sh` and `docker compose config -q` pass. After running the script twice, `credentials_entity` has exactly one row `Redis account|redis` with the same id. `code-reviewer`: APPROVED (non-blocking: the password is interpolated into the JSON unescaped, same as the Postgres and WAHA lines).
+Role: node-service · Depends on: none · Covers: infra for AC 6, 10–14 · Size: S
+Spec: 3, 4, 5.1, 6
+
+**Goal.** An n8n credential `Redis account` exists in fresh and current installs, created from `.env` and never overwritten.
+
+**Contract.**
+
+- `scripts/setup.sh`: add a constant `CRED_REDIS_ID` (16-char id, same style as the other `CRED_*_ID`), and an `exists credentials_entity "$CRED_REDIS_ID" || add_cred '{"id":…,"name":"Redis account","type":"redis","data":{"host":"redis","port":6379,"password":"<REDIS_PASSWORD from env_get>","database":1}}'` line next to the others. Verify the `redis` credential's field names for n8n 2.41.7 with context7 first.
+- No new `.env` key, and existing `.env` values untouched.
+- Create it in the running n8n by rerunning `scripts/setup.sh`. It only creates missing credentials, imports only missing workflows and runs `docker compose up -d` (nothing destructive).
+
+**Steps.**
+
+1. Read `scripts/setup.sh` (credential section).
+2. Add the constant and the `add_cred` line.
+3. Run `scripts/setup.sh`, then confirm with `docker compose exec -T postgres psql -U n8n -d n8n -tAc "select name,type from credentials_entity where name='Redis account'"`.
+
+**Done when.**
+
+- The `Redis account` credential exists with type `redis`.
+- Rerunning the script doesn't duplicate or overwrite it.
+- `bash -n scripts/setup.sh` and `docker compose config -q` pass.
+
+**Not in this phase.** Any workflow.
+
+### Phase 3 — Workflow skeleton: config, intake, filters 1–4, message types
+
+Status: PENDING
+Role: n8n-workflows · Depends on: 1, 2 · Covers: AC 16, 17, 6 (type routing) · Size: M
+Spec: 0, 1, 2 (2.1, 2.2 items 1–4, 2.3 routing)
+
+**Goal.** A new, valid, unpublished workflow that receives `message.any`, loads the config, normalizes the payload, dedupes it, applies filters 1–4 and routes by type. Every branch ends explicitly.
+
+**Contract.**
+
+- File `workflows/chatbot-waha-divercity.json`, new workflow `id`, new trigger `webhookId` (UUID). Record both in this plan.
+- Block 1 (sticky "1 CONFIG e INSTRUÇÕES — valores que o dono edita"):
+  - `CONFIG` (Set, `includeOtherFields: false`): the spec 1.1 keys (see Names).
+  - `INSTRUCOES` (Set):
+    - `PERSONA_E_REGRAS` = the Annex A text verbatim.
+    - `FATOS_DO_PARQUE` = `"Endereço: [PREENCHER]\nRegras de entrada: [PREENCHER]\nPolítica de acompanhante: [PREENCHER]\nDescontos: [PREENCHER]\nEstacionamento: [PREENCHER]"`.
+    - `AVISOS_DE_HOJE` = `""`.
+    - `FERIADOS` = `"2026-10-12,2026-11-02,2026-11-15,2026-11-20,2026-12-25,2027-01-01"`.
+    - `MSG_HANDOFF_CLIENTE` = `"Vou chamar uma das nossas atendentes pra te ajudar com isso. Ela te responde por aqui em breve."`
+    - `MSG_MIDIA` = `"Por enquanto eu só consigo ler mensagens de texto. Vou chamar uma atendente pra te ajudar."`
+- Block 2 (sticky "2 Entrada e filtros — normaliza e descarta o que o bot não deve responder"):
+  - `2.1 Receber evento WAHA` (WAHA Trigger, **only** `message.any`, output from Phase 1 fact 3) → `CONFIG` → `INSTRUCOES` → `2.1 Normalizar mensagem`.
+  - `2.1 Normalizar mensagem` (one Set node, or two named `2.1 Extrair mensagem` + `2.1 Normalizar mensagem` like car-rental). Normalized shape:
+    - `idMensagem`, `sessao`.
+    - `fromMe` (bool), `source` (string, `''` if absent).
+    - `chatId` (`fromMe ? to : from`), `timestamp` (seconds).
+    - `tipo` (per Phase 1 fact 1; D4: reactions, polls, protocol/edit/delete, empty text and unknown → `ignorar`).
+    - `tipoLabel` (`áudio`, `imagem`, `vídeo`, `documento`, `localização`, `contato`).
+    - `texto` (texts only), `legenda`, `nomeContato`.
+    - `telefone` (digits only: from a `@c.us`/`@s.whatsapp.net` chatId, else the Phase 1 alt field, else `''`), `ehLid`.
+  - `2.2.1 Ignorar grupos e canais` (Filter): chatId does not end with `@g.us`, `@broadcast` or `@newsletter`.
+  - `2.2.0 Contar entrega` (Redis incr `entrega:{idMensagem}`, expire `MAX_IDADE_MSG_SEGUNDOS × 2`) → `2.2.0 Manter primeira entrega` (Filter: count = 1). Put it right after 2.2.1 (repo idempotency invariant; report it as an addition).
+  - `2.2.2 Enviada por mim?` (If): true → `3.0 Enviada por mim (checar atendente)` (NoOp end, replaced in Phase 5). False continues.
+  - `2.2.3 Ignorar mensagens antigas` (Filter): `now_seconds − timestamp ≤ MAX_IDADE_MSG_SEGUNDOS`.
+  - `2.2.4 Aplicar allowlist de teste` (Filter): `!MODO_TESTE || ALLOWLIST.split(',').map(trim).includes(telefone)`.
+  - `2.3 Rotear por tipo` (Switch):
+    - `texto` → `2.3 Texto aceito` (NoOp end, continued in Phase 7).
+    - `audio|imagem|video|documento|localizacao|contato` → `2.3 Mídia recebida` (NoOp end, continued in Phase 6).
+    - `figurinha` and `ignorar` → end with no action.
+- Chain order (later phases insert into it): `2.2.4` → [`2.2.5 …` Phase 4] → [`3.2 …` Phase 5] → `2.3 Rotear por tipo`.
+
+**Steps.**
+
+1. Verify node parameters with context7 and the Phase 1 findings.
+2. Write the JSON (sticky notes around blocks 1–2, positions left to right).
+3. Optional: import it **unpublished** and run it manually with sanitized pinned payloads (group, old, non-allowlisted, sticker, reaction, text, audio). Never commit pinData.
+
+**Done when.**
+
+- `jq empty workflows/*.json` passes, and `jq '.active' workflows/chatbot-waha-divercity.json` is `false`.
+- A `jq` node list shows the names above, every node is inside a sticky note, and every node has a numeric prefix except `CONFIG`/`INSTRUCOES`.
+- The secrets grep finds only the `COLE_O_TOKEN_AQUI` placeholder. No `@c.us`, `@g.us` or `@lid` ids with real digits.
+
+**Not in this phase.** Contact lookup, Redis pause, debounce, agent, sends.
+
+### Phase 4 — Filter 5: only numbers not in the phone's agenda
+
+Status: PENDING (requires Phase 1 D3 condition = PASS; otherwise `BLOCKED (D3)`)
+Role: n8n-workflows · Depends on: 1, 3 · Covers: AC 7, 8, 9 · Size: S
+Spec: 2 (filter 5), 8 row 1
+
+**Goal.** Saved contacts never reach the bot. A failed lookup ignores the message (fail closed). Allowlisted numbers in test mode skip the check.
+
+**Contract (D3-A).**
+
+- Insert between `2.2.4 Aplicar allowlist de teste` and the next node:
+  - `2.2.5 Pular checagem (allowlist de teste)` (If): `MODO_TESTE && ALLOWLIST includes telefone` → true bypasses to the next node.
+  - `2.2.5 Ignorar contatos da lista` (Filter): `telefone` not in `CONTATOS_IGNORADOS` (comma list of digits).
+  - `2.2.5 Consultar contato` (WAHA Contacts → Get, `session = CONFIG.WAHA_SESSION`, `contactId = chatId`; `onError: continueErrorOutput`). Error output → `2.2.5 Log falha consulta contato` (Set `evento: "falha_consulta_contato"`) → end.
+  - `2.2.5 Número desconhecido?` (If): response has `id`, and `name` is empty/null → continue. `name` non-empty → end silently (no reply, no pause). Response without `id` → `2.2.5 Log falha consulta contato`.
+  - Keep `nomeContato` = the normalized one, else `pushname` from the response (used by the group notice).
+- Add a `Deviation:` proposal to the report (the spec says `isMyContact`).
+
+**Steps.** Insert the nodes, rewire, and run manually with pinned payloads for: saved, unsaved, allowlisted-saved, and a forced lookup error (invalid contactId).
+
+**Done when.**
+
+- JSON is valid and the node list matches.
+- Manual runs: the saved number ends at `Número desconhecido?` false, the unsaved one continues, the allowlist one bypasses, and the error ends in `Log falha consulta contato`.
+
+**Not in this phase.** Pause, sends.
+
+### Phase 5 — Pause and attendant detection
+
+Status: PENDING
+Role: n8n-workflows · Depends on: 3 · Covers: AC 12 (pause), 13, 6 (silence while paused) · Size: S
+Spec: 3
+
+**Goal.** A message typed by a person on the park phone pauses that chat for `PAUSA_HORAS`, and a paused chat gets no reply.
+
+**Contract.**
+
+- Block 3 sticky: "3 Pausa e atendente humana — o bot fica calado enquanto uma pessoa atende o chat".
+- Replace `3.0 Enviada por mim (checar atendente)` with:
+  - `3.1 Buscar marca de msg do bot` (Redis get `bot-msg:{idMensagem}`).
+  - `3.1 Digitada pela atendente?` (If): `source !== 'api'` **and** the bot-message mark is empty. This combines spec 3.1 and its fallback, so it works whether or not Phase 1 found `source`. True → `3.1 Pausar chat` (Redis set `pausa:{chatId}` = `"1"`, expire `PAUSA_HORAS × 3600`; this renews it). False → end.
+- Client path: insert before `2.3 Rotear por tipo`: `3.2 Buscar pausa` (Redis get `pausa:{chatId}`) → `3.2 Chat pausado?` (If): paused → end silently. Not paused → `2.3 Rotear por tipo`.
+- Redis set/get keys use the normalized `chatId` (`to` for `fromMe`).
+
+**Steps.** Add the nodes, rewire, and run manually with pinned `fromMe` payloads (`source: app`, `source: api`, absent + mark set) and a client payload with and without the pause key.
+
+**Done when.**
+
+- JSON is valid and the node list matches.
+- Manual runs: the app-typed message sets `pausa:` with a TTL (check with `docker compose exec -T redis sh -c 'redis-cli -a "$REDIS_PASSWORD" --no-auth-warning -n 1 ttl pausa:<test chat>'`). The API message does not. A paused client message ends at `3.2`.
+
+**Not in this phase.** Writing `bot-msg:` marks (Phases 6 and 10 do that on every bot send).
+
+### Phase 6 — Handoff block and media path
+
+Status: PENDING
+Role: n8n-workflows · Depends on: 5 · Covers: AC 6, 12, 13 (bot sends don't pause) · Size: M
+Spec: 2.3, 5.1 ("precisa de humano"), 7 (`humano` steps 1–4)
+
+**Goal.** A single handoff path that every source can enter, wired to the media branch.
+
+**Contract.**
+
+- Block 7 sticky: "7 Resposta, encerramento e handoff — envia, encerra a conversa ou pausa e chama a equipe". (Phases 9/10 add more nodes here.)
+- Input contract into `7.3 Preparar handoff` (Set, accepts several inputs): `resposta` (string; empty → `MSG_HANDOFF_CLIENTE`), `motivo`, `resumo` (array, up to 3 lines), `ultimoTexto`, plus `chatId`, `telefone`, `nomeContato`, `ehLid`, `sessao`.
+- Media path: `2.3 Mídia recebida` becomes `2.3 Preparar handoff de mídia` (Set) → `7.3 Preparar handoff`. The agent is not called. Values:
+  - `resposta = MSG_MIDIA`. Send one message only: `MSG_MIDIA` replaces `MSG_HANDOFF_CLIENTE` (interpretation, report it).
+  - `motivo = "cliente enviou {tipoLabel}"`.
+  - `resumo = ["Cliente enviou {tipoLabel}" + (legenda ? ": " + legenda : "")]`.
+  - `ultimoTexto = legenda`.
+- Handoff order (spec 7):
+  1. `7.3 Parar digitação` (WAHA Stop Typing; harmless if not typing) → `7.3 Enviar msg de handoff` (WAHA Send Text, `session = CONFIG.WAHA_SESSION`, `chatId`, `text = resposta`) → `7.3 Registrar msg do bot` (Redis set `bot-msg:{sent id}`, expire 120; sent id path from the Send Text response).
+  2. `7.3 Pausar chat` (Redis set `pausa:{chatId}`, expire `PAUSA_HORAS × 3600`).
+  3. `7.3 Encerrar conversa` (Redis delete `conv:{chatId}`) → `7.3 Limpar buffer` (Redis delete `buf:{chatId}`, so stale text isn't answered after the pause; interpretation, report it).
+  4. `7.3 Tem grupo de atendimento?` (If `GRUPO_ATENDIMENTO_ID` non-empty). False → `7.3 Log sem grupo` (Set `evento: "grupo_nao_configurado"`). True → `7.3 Montar aviso do grupo` (Code, pure, ≤ 30 lines) → `7.3 Avisar grupo` (WAHA Send Text to `GRUPO_ATENDIMENTO_ID`).
+- `7.3 Montar aviso do grupo` output `texto` (spec 7). Template lines:
+
+  ```text
+  Atendimento humano necessário
+  Cliente: {nomeContato || "sem nome"}{telefoneFmt ? " — " + telefoneFmt : ""}
+  Conversa: https://wa.me/{telefone}
+  Motivo: {motivo}
+  Resumo:
+  • {resumo[i]}
+  Última mensagem: "{ultimoTexto}"
+  O bot parou de responder este chat por {PAUSA_HORAS}h (renova a cada mensagem da atendente).
+  ```
+
+  Rules for the template:
+  - `Conversa:` goes in only if `INCLUIR_LINK_WA && telefone`.
+  - One `•` line per `resumo` item, max 3. Omit `Resumo:` if `resumo` is empty.
+  - Omit `Última mensagem:` if `ultimoTexto` is empty.
+  - `telefoneFmt`: for `55` + 2-digit DDD + 9 digits → `+55 DD NNNNN-NNNN`; + 8 digits → `+55 DD NNNN-NNNN`; otherwise `+{digits}`.
+  - If `telefone` is empty (`@lid` without an alt field), show the name only and no link.
+- If a Send fails, it goes to the error workflow (no blind retries, `retryOnFail` off on sends).
+
+**Steps.** Build the nodes, wire the media branch, and run manually with a pinned audio payload from the test chat (live send to the test chat only, `GRUPO_ATENDIMENTO_ID` empty or a test group).
+
+**Done when.**
+
+- JSON is valid and the node list matches.
+- A manual audio run: `MSG_MIDIA` arrives once in the test chat, `pausa:` is set with a TTL, `conv:`/`buf:` are gone, and the notice goes to the test group (or `Log sem grupo` ends the run). A second audio while paused ends at `3.2`.
+- The group text matches the template (check the Code node output).
+
+**Not in this phase.** The agent's `humano` and failure inputs (Phase 9).
+
+### Phase 7 — Debounce (group messages)
+
+Status: PENDING
+Role: n8n-workflows · Depends on: 5 · Covers: AC 14, 6 (text then audio < 5 s) · Size: M
+Spec: 4
+
+**Goal.** Messages sent in a row get one combined handling, and a handoff during the wait wins.
+
+**Contract.**
+
+- Block 4 sticky: "4 Agrupar mensagens — espera DEBOUNCE_SEGUNDOS, só a última mensagem segue".
+- From `2.3 Texto aceito` (replace the NoOp):
+  1. `4.1 Guardar texto no buffer` (Redis push to the tail of list `buf:{chatId}`, value `texto`) → `4.1 Marcar última mensagem` (Redis set `ultima:{chatId}` = `idMensagem`, expire `MEMORIA_TTL_HORAS × 3600`).
+  2. `4.2 Marcar como vista` → `4.2 Começar digitação` (WAHA Send Seen / Start Typing, `session = CONFIG.WAHA_SESSION`).
+  3. `4.3 Esperar debounce` (Wait, `DEBOUNCE_SEGUNDOS` seconds).
+  4. `4.4 Buscar última mensagem` (Redis get) → `4.4 É a última mensagem?` (If equal to the current `idMensagem`). False → end.
+  5. `4.5 Buscar pausa de novo` (Redis get `pausa:{chatId}`) → `4.5 Ainda sem pausa?` (If). Paused → end. Otherwise `4.5 Ler buffer` (Redis get, key type list) → `4.5 Apagar buffer` (Redis delete) → `4.5 Juntar textos` (Set: `texto = list.join("\n")`; if the list is empty, use the current message `texto`, which covers the read/delete race).
+- The node after `4.5 Juntar textos` is `4.6 Texto pronto` (NoOp end, continued in Phase 8).
+
+**Steps.** Build and run manually: two pinned executions close together (the second has a newer id) → only one reaches `4.6`. With the pause key set during the wait → ends at `4.5`.
+
+**Done when.**
+
+- JSON is valid and the node list matches.
+- Manual runs behave as above, and `buf:` is deleted after the winner reads it.
+
+**Not in this phase.** Conversation, context, agent.
+
+### Phase 8 — Conversation session and context
+
+Status: PENDING
+Role: n8n-workflows · Depends on: 7 · Covers: AC 1–4 (deterministic part), 10, 11 · Size: M
+Spec: 5.1, 5.2
+
+**Goal.** Each text gets a conversation id with a sliding TTL, and a deterministic system message with "now" and the calendar.
+
+**Contract.**
+
+- Block 5 sticky: "5 Conversa e contexto — id da conversa com TTL deslizante e calendário que o modelo lê".
+- From `4.6 Texto pronto`:
+  1. `5.1 Buscar conversa` (Redis get `conv:{chatId}`).
+  2. `5.1 Definir id da conversa` (Set: `conversaId` = the existing value, or a new `{{ $now.toMillis() }}-{{ $execution.id }}`).
+  3. `5.1 Renovar conversa` (Redis set `conv:{chatId}` = `conversaId`, expire `MEMORIA_TTL_HORAS × 3600`).
+  4. `5.2 Montar contexto` (Code, pure, no network, pt-BR comments).
+- `5.2 Montar contexto` output: `sessionKey = "{chatId}:{conversaId}"`, `textoCliente`, `mensagemSistema`. Rules (spec 5.2), all in `CONFIG.TIMEZONE`:
+  - The weekday comes from a fixed array `["domingo","segunda-feira","terça-feira","quarta-feira","quinta-feira","sexta-feira","sábado"]` applied to the date in the timezone (`Intl.DateTimeFormat('en-CA', {timeZone, …})` for Y-M-D/H:M).
+  - `AGORA: {dia da semana}, {DD/MM/YYYY}, {HH:MM} (horário de Brasília)`.
+  - `CALENDÁRIO`: from today, `DIAS_CALENDARIO` lines: `{YYYY-MM-DD} {dia da semana}[ | FERIADO] | preço: {tier} | horário: {faixa}`. Holidays are those in `FERIADOS`.
+  - Price tier: holiday or Fri/Sat/Sun → `sexta-a-domingo/feriado (weekendPrice)`, otherwise `segunda-a-quinta (weekdayPrice)`.
+  - Hours tier: holiday or Sunday → `domingos e feriados (sundays_holidays)`, otherwise `segunda-a-sábado (weekdays)`.
+  - `mensagemSistema = PERSONA_E_REGRAS + "\n\nFATOS DO PARQUE\n" + FATOS_DO_PARQUE + "\n\nAVISOS DE HOJE\n" + (AVISOS_DE_HOJE || "(nenhum)") + "\n\n" + AGORA + "\n\nCALENDÁRIO\n" + lines`.
+- Spec test case:
+  - 2026-10-12 → `2026-10-12 segunda-feira | FERIADO | preço: sexta-a-domingo/feriado (weekendPrice) | horário: domingos e feriados (sundays_holidays)`.
+  - 2026-10-13 → `2026-10-13 terça-feira | preço: segunda-a-quinta (weekdayPrice) | horário: segunda-a-sábado (weekdays)`.
+- `5.2 Montar contexto` → `5.3 Contexto pronto` (NoOp end, continued in Phase 9).
+
+**Steps.** Build, then run manually and check the calendar lines for 2026-10-12, -13 and -17 (Saturday → weekendPrice/weekdays), and that a second run reuses `conv:` and refreshes its TTL.
+
+**Done when.**
+
+- JSON is valid. The Code node output matches the spec test case.
+- `conv:` is created on the first run and reused (TTL refreshed) on the second.
+
+**Not in this phase.** Agent.
+
+### Phase 9 — Agent, tools, status routing to handoff
+
+Status: PENDING
+Role: n8n-workflows · Depends on: 6, 8 · Covers: AC 1–5, 15 · Size: M
+Spec: 6, 7 (routing), 0.5
+
+**Goal.** The agent answers with prices and hours only from the site API, returns the structured status, and any `humano`, invalid output or failure goes to the handoff.
+
+**Contract.**
+
+- Block 6 sticky: "6 Agente — responde preço e horário pela API do site e decide o status".
+- `6.1 Responder cliente` (AI Agent, latest typeVersion from Phase 1): prompt `textoCliente`, system message `mensagemSistema`, structured output required, `onError: continueErrorOutput`. Sub-nodes:
+  - `6.1 Modelo OpenAI` (credential `{"openAiApi":{"id":"KFZp3oDrOgr20VBL","name":"OpenAI account"}}`, model `CONFIG.OPENAI_MODEL`, temperature `CONFIG.TEMPERATURA`).
+  - `6.1 Memória da conversa` (Redis Chat Memory, credential `Redis account`, custom session key `sessionKey`, context window `MEMORIA_MENSAGENS`, session TTL `MEMORIA_TTL_HORAS × 3600`).
+  - `6.1 Ler resposta estruturada` (Structured Output Parser, JSON schema: `resposta` string required, `status` enum `["continua","resolvido","humano"]` required, `motivo` string, `resumo` array of strings (max 3)).
+  - `6.2 consultar_passaportes` (HTTP Request Tool): `GET {API_BASE_URL}{PATH_PRECOS}?type=passaportes&perPage=100`, header `Authorization: Bearer {{ $('CONFIG').first().json.SITE_API_TOKEN }}`. Model-facing description (pt-BR): "Lista os preços de passaporte (criança e acompanhante, por duração). weekdayPrice = segunda a quinta; weekendPrice = sexta a domingo e feriados. Linhas com key terminando em `_child` = criança, `_companion` = acompanhante."
+  - `6.2 consultar_horarios` (HTTP Request Tool): `GET {API_BASE_URL}{PATH_HORARIOS}?perPage=100`, same header. Description: "Lista os horários de funcionamento. Use a chave (key): weekdays = segunda a sábado; sundays_holidays = domingos e feriados. Nunca decida pelo label."
+  - Use HTTP Request Tools, not a Code Tool (the repo rule is no network calls in Code nodes; spec 6 allows this fallback). Tool errors, 401s and empty data reach the model as tool output, and prompt rule 3 makes that `humano`.
+- `7.0 Rotear por status` (Switch on `output.status`):
+  - `humano` → `7.0 Preparar handoff do agente` (Set: `resposta`, `motivo`, `resumo`, `ultimoTexto = textoCliente`) → `7.3 Preparar handoff`.
+  - `continua` → `7.1 Resposta pronta` (NoOp end, Phase 10).
+  - `resolvido` → `7.2 Encerramento pronto` (NoOp end, Phase 10).
+  - Fallback (missing/invalid status or empty `resposta`) → `6.3 Preparar falha técnica`.
+- `6.3 Preparar falha técnica` (from the agent error output and the fallback): `resposta = ""` (→ `MSG_HANDOFF_CLIENTE`), `motivo = "falha técnica"`, `resumo = []`, `ultimoTexto = textoCliente` → `7.3 Preparar handoff`.
+
+**Steps.** Verify the agent/parser/tool parameters with context7 (n8n 2.41.7). Build, then run manually with the real token pasted in the n8n editor only (never in the repo file), on the test chat: "Quanto é a entrada?", "quanto é na terça?", "quero fazer uma festa", and once with a wrong token.
+
+**Done when.**
+
+- JSON is valid. The repo file has `SITE_API_TOKEN = "COLE_O_TOKEN_AQUI"`.
+- Manual runs: price questions end at `7.1 Resposta pronta` with prices that match the API, the party question and the wrong-token run reach the handoff (the test chat gets the handoff message), and no invented prices appear.
+
+**Not in this phase.** Sending `continua`/`resolvido` replies.
+
+### Phase 10 — Reply and close paths (`continua`, `resolvido`)
+
+Status: PENDING
+Role: n8n-workflows · Depends on: 9 · Covers: AC 10, 13 · Size: S
+Spec: 5.1 ("dúvidas resolvidas"), 7 (`continua`, `resolvido`)
+
+**Goal.** Normal replies and farewells are sent and marked as bot messages. A farewell ends the conversation without a pause.
+
+**Contract.**
+
+- `7.1 Resposta pronta` → `7.1 Parar digitação` → `7.1 Enviar resposta` (WAHA Send Text, `text = output.resposta`) → `7.1 Registrar msg do bot` (Redis set `bot-msg:{sent id}`, expire 120).
+- `7.2 Encerramento pronto` → `7.2 Parar digitação` → `7.2 Enviar despedida` → `7.2 Registrar msg do bot` → `7.2 Encerrar conversa` (Redis delete `conv:{chatId}`). No pause and no group notice.
+- Spec 7 lists `bot-msg:` only under `continua`. It is written on every bot send, because spec 3 says bot messages never pause (interpretation, report it).
+
+**Steps.** Replace the NoOps, then run manually on the test chat: a price question (reply arrives), then "era só isso, obrigado" (farewell arrives, `conv:` deleted, no `pausa:`).
+
+**Done when.**
+
+- JSON is valid, and no NoOp placeholders remain anywhere in the workflow.
+- Manual runs match the steps. The `fromMe` webhook of the bot's reply doesn't set `pausa:` (checked live in Phase 11).
+
+**Not in this phase.** Publishing.
+
+### Phase 11 — Hook routing, import and publish in test mode
+
+Status: PENDING
+Role: n8n-workflows · Depends on: 2–10 · Covers: enables the live AC runs · Size: S
+Spec: 2.1, 10
+
+**Goal.** Real WAHA events reach the new, published workflow, with `MODO_TESTE = true`.
+
+**Contract (D2-A).**
+
+- `docker-compose.yml`: `WHATSAPP_HOOK_URL: http://n8n:5678/webhook/<new webhookId>/waha # WAHA Trigger of chatbot-waha-divercity (<webhookId>/waha)`. Events stay `message.any`. No other compose change.
+- `docker compose up -d waha` (recreates only waha; the session is stored in Postgres). Never `down`, `-v` or a logout.
+- Import the workflow if it's missing (`n8n import:workflow --separate --input=…`). If an n8n copy exists, diff it first, because UI edits win. Then `n8n publish:workflow --id=<id>` and `docker compose restart n8n n8n-worker` (the CLI publish needs a restart, per `setup.sh`).
+- The owner pastes the real `SITE_API_TOKEN`, `ALLOWLIST` (test numbers) and optionally `GRUPO_ATENDIMENTO_ID` (test group) in the n8n editor.
+- `scripts/setup.sh` keeps publishing the car-rental example on fresh installs (out of scope; reported).
+
+**Steps.** Edit compose, run `docker compose config -q`, recreate waha, import, publish, restart, then send one test text from an allowlisted number and check an execution reaches a reply.
+
+**Done when.**
+
+- `docker compose config -q` passes. The WAHA session `Default` is still WORKING.
+- The workflow is published, and a test-chat text gets a bot reply.
+
+**Not in this phase.** The full AC walkthrough.
+
+### Phase 12 — Verification and report
+
+Status: PENDING
+Role: n8n-workflows (+ `qa-tester`, then `code-reviewer`) · Depends on: 1–11 · Covers: all ACs · Size: M
+Spec: 9, 8, 10
+
+**Goal.** Prove every acceptance criterion live on test chats, sweep for secrets/PII, and hand the owner the go-live checklist.
+
+**Contract.**
+
+- Gate:
+  - `jq empty workflows/*.json`, `docker compose config -q`, `bash -n scripts/setup.sh`.
+  - The secrets/PII grep from `project-core`, plus `grep -n "SITE_API_TOKEN" workflows/chatbot-waha-divercity.json`, which must show only the placeholder.
+  - No real digits in `ALLOWLIST`, `CONTATOS_IGNORADOS` or `GRUPO_ATENDIMENTO_ID`. No `pinData`.
+- Live smoke tests (test numbers only, test group): AC 1–17 in order.
+  - Timing ACs: use `DEBOUNCE_SEGUNDOS = 5`.
+  - AC 11/12: temporarily lower `MEMORIA_TTL_HORAS`/`PAUSA_HORAS` in the n8n editor (e.g. 0.01) and restore them after.
+  - AC 15: use a wrong token in the editor, then restore it.
+  - AC 7/8: one saved and one unsaved test number, with `MODO_TESTE` toggled in the editor.
+  - AC 13: the owner types on the park phone, and a bot reply doesn't pause.
+- Record pass/fail per AC in this plan (no PII). Re-export the n8n copy if it changed during testing, with the token-safety reset.
+- Report: the spec deviations, as proposed `Deviation:` lines for the owner:
+  - D3 signal (`name` instead of `isMyContact`).
+  - `bot-msg:` on every send.
+  - `MSG_MIDIA` as the single handoff message for media.
+  - `buf:` cleared on handoff.
+  - `entrega:` dedupe added.
+  - `WAHA_SESSION = Default`.
+  - `.first()` instead of `.item`.
+  - D1 all-Portuguese identifiers (an exception to `CLAUDE.md`).
+- Owner manual checklist:
+  - Fill `FATOS_DO_PARQUE` (no `[PREENCHER]` left; the model could quote it).
+  - Add the city's local holidays to `FERIADOS`.
+  - Paste the real token and set `GRUPO_ATENDIMENTO_ID`.
+  - Set `MODO_TESTE = false` only after sign-off.
+  - Back up `N8N_ENCRYPTION_KEY` and schedule Postgres backups (spec 10).
+
+**Steps.** Run the gate, run the smoke tests with the owner, have `code-reviewer` review the workflow diff against this plan, and write the results.
+
+**Done when.**
+
+- All gate commands pass, and every AC is marked pass (or failing with its cause and a follow-up).
+- The deviation list and owner checklist are delivered.
+
+**Not in this phase.** Switching `MODO_TESTE` off or any production rollout.

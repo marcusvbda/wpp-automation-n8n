@@ -12,6 +12,7 @@ CHATBOT_WORKFLOW_ID=3zFS5yZDOZFAAhfM
 CRED_POSTGRES_ID=qBw06fsYVSnHDIYZ
 CRED_WAHA_ID=fLb4y6X1sdRn0lC8
 CRED_OPENAI_ID=KFZp3oDrOgr20VBL
+CRED_REDIS_ID=rD7k2Mx9QpL4vWn3
 
 command -v docker >/dev/null || { echo "docker is required" >&2; exit 1; }
 docker compose version >/dev/null || { echo "docker compose v2 is required" >&2; exit 1; }
@@ -105,6 +106,8 @@ exists credentials_entity "$CRED_POSTGRES_ID" ||
   add_cred "{\"id\":\"$CRED_POSTGRES_ID\",\"name\":\"Postgres account\",\"type\":\"postgres\",\"data\":{\"host\":\"postgres\",\"port\":5432,\"database\":\"n8n\",\"user\":\"n8n\",\"password\":\"$(env_get N8N_DB_PASSWORD)\",\"ssl\":\"disable\"}}"
 exists credentials_entity "$CRED_WAHA_ID" ||
   add_cred "{\"id\":\"$CRED_WAHA_ID\",\"name\":\"WAHA account\",\"type\":\"wahaApi\",\"data\":{\"url\":\"http://waha:3000\",\"apiKey\":\"$(env_get WAHA_API_KEY)\"}}"
+exists credentials_entity "$CRED_REDIS_ID" ||
+  add_cred "{\"id\":\"$CRED_REDIS_ID\",\"name\":\"Redis account\",\"type\":\"redis\",\"data\":{\"host\":\"redis\",\"port\":6379,\"password\":\"$(env_get REDIS_PASSWORD)\",\"database\":1}}"
 openai_key=$(env_get OPENAI_API_KEY)
 if ! exists credentials_entity "$CRED_OPENAI_ID" && [ -n "$openai_key" ]; then
   add_cred "{\"id\":\"$CRED_OPENAI_ID\",\"name\":\"OpenAI account\",\"type\":\"openAiApi\",\"data\":{\"apiKey\":\"$openai_key\"}}"

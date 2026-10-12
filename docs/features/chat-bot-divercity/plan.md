@@ -12,7 +12,7 @@ session. Phase status is updated in place in this file.
 | 1     | Live probe: payload fields, contact signal, node types | n8n-workflows | none       | S    | DONE |
 | 2     | Redis credential for the bot                           | node-service  | none       | S    | DONE    |
 | 3     | Workflow skeleton: config, intake, filters 1–4, types  | n8n-workflows | 1, 2       | M    | DONE    |
-| 4     | Filter 5: only numbers not in the phone's agenda       | n8n-workflows | 1, 3       | S    | PENDING |
+| 4     | Filter 5: only numbers not in the phone's agenda       | n8n-workflows | 1, 3       | S    | DONE    |
 | 5     | Pause and attendant detection                          | n8n-workflows | 3          | S    | PENDING |
 | 6     | Handoff block and media path                           | n8n-workflows | 5          | M    | PENDING |
 | 7     | Debounce (group messages)                              | n8n-workflows | 5          | M    | PENDING |
@@ -282,7 +282,11 @@ Spec: 0, 1, 2 (2.1, 2.2 items 1–4, 2.3 routing)
 
 ### Phase 4 — Filter 5: only numbers not in the phone's agenda
 
-Status: PENDING (requires Phase 1 D3 condition = PASS; otherwise `BLOCKED (D3)`)
+Status: DONE
+Evidence: 8 new `2.2.5` nodes in `workflows/chatbot-waha-divercity.json` (`Pular checagem (allowlist de teste)`, `Ignorar contatos da lista`, `Tem telefone?`, `Consultar contato`, `Consulta válida?`, `Número desconhecido?`, `Restaurar mensagem`, `Log falha consulta contato`), wired `2.2.4` → `2.2.5` → `2.3 Rotear por tipo`. `jq empty workflows/*.json` passes, `active: false`, no dangling connections, existing node ids/positions unchanged, every node inside a sticky, secrets grep clean. Conditions exercised in node with synthetic items (bypass, ignore list, empty `telefone`, saved / unsaved / `name: null` / `{}` responses). Live read-only WAHA GETs confirmed the shapes: saved `@c.us` → `id,name,lid,phoneNumber`; unsaved → `id,pushname`; malformed or empty id → HTTP 200 with an empty body. `code-reviewer`: APPROVED.
+Not done: the manual n8n runs with pinned payloads were **not** executed (the workflow was not run). The n8n copy of `B1fRwNFx0bFdHYGI` was **not** updated (see Deviation below), so the new nodes exist only in the repo file.
+Deviation: (1) `contactId` is `<telefone>@c.us`, not `chatId` (a lookup by the `@lid` id returns no `name` for saved contacts); (2) an extra `Tem telefone?` and `Consulta válida?` If, to fail closed on an empty `telefone` and on a response without `id`; (3) spec says `isMyContact`, the signal is `name` (D3). Propose a `Deviation:` note in `spec.md` sections 2 and Filter 5.
+Divergence to resolve before Phase 11: the n8n editor copy of `B1fRwNFx0bFdHYGI` differs from the repo file (layout snapped to a 16 grid, larger stickies, `availableInMCP`, `binaryMode: separate`, some Set/Code defaults; logic and connections match). Those are the owner's manual edits and win, so the file was not imported. Before Phase 11, re-export the n8n copy into the repo (with the token-safety reset) and re-apply the Phase 4 nodes on top, or accept an import that resets the layout.
 Role: n8n-workflows · Depends on: 1, 3 · Covers: AC 7, 8, 9 · Size: S
 Spec: 2 (filter 5), 8 row 1
 

@@ -21,9 +21,9 @@
     },
     {
       "parameters": {
-        "content": "## 2 Entrada e filtros — normaliza e descarta o que o bot não deve responder\nRecebe o evento do WAHA, normaliza a mensagem e descarta grupos, duplicadas, antigas e fora da allowlist antes de rotear por tipo.",
+        "content": "## 2 Entrada e filtros — normaliza e descarta o que o bot não deve responder\nRecebe o evento do WAHA, normaliza a mensagem e descarta grupos, duplicadas, antigas, fora da allowlist e contatos salvos na agenda (2.2.5) antes de rotear por tipo.",
         "height": 400,
-        "width": 3480,
+        "width": 4400,
         "color": 7
       },
       "id": "0ceb129a-f8da-41d2-933b-3e90a18cddba",
@@ -667,6 +667,252 @@
         2420,
         800
       ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "2a12d816-644f-4447-b86e-d4ee059ebf5a",
+              "leftValue": "={{ $('CONFIG').first().json.MODO_TESTE === true && String($('CONFIG').first().json.ALLOWLIST ?? '').split(',').map(s => s.trim()).filter(Boolean).includes($json.telefone) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b2f979dd-4e07-485f-b0ef-db5a686fe5d0",
+      "name": "2.2.5 Pular checagem (allowlist de teste)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2640,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "8a6518eb-9a38-465e-808b-552df2e9e0a1",
+              "leftValue": "={{ !String($('CONFIG').first().json.CONTATOS_IGNORADOS ?? '').split(',').map(s => s.trim()).filter(Boolean).includes($json.telefone) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "4df4774f-a04d-4f27-ab68-f0a98b02db92",
+      "name": "2.2.5 Ignorar contatos da lista",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        2860,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "13bd9bca-729a-4873-a8bd-95ded0fe1b1e",
+              "leftValue": "={{ String($json.telefone ?? '') !== '' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "96a1aff3-4744-44d7-99ea-3e88031f0865",
+      "name": "2.2.5 Tem telefone?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3080,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "Contacts",
+        "operation": "Get",
+        "session": "={{ $('CONFIG').first().json.WAHA_SESSION }}",
+        "contactId": "={{ $json.telefone }}@c.us",
+        "requestOptions": {}
+      },
+      "id": "091edf34-ffc5-4dc9-8609-b7354602056d",
+      "name": "2.2.5 Consultar contato",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        3300,
+        340
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "wahaApi": {
+          "id": "fLb4y6X1sdRn0lC8",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "bb28a1c6-6812-4a96-900e-cfa8e6f85195",
+              "leftValue": "={{ String($json.id ?? '').trim() !== '' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "67ff9b27-24aa-4669-b7b3-b230f035e4bc",
+      "name": "2.2.5 Consulta válida?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3520,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1fbf0602-ed84-4ddb-abd3-c765c91f2590",
+              "leftValue": "={{ String($json.name ?? '').trim() === '' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "1ad2a0bd-962c-4b39-9269-8c29208f1ed1",
+      "name": "2.2.5 Número desconhecido?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3740,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ Object.assign({}, $('2.2.4 Aplicar allowlist de teste').first().json, { nomeContato: $('2.2.4 Aplicar allowlist de teste').first().json.nomeContato || $json.pushname || '' }) }}",
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "03ed2671-6912-44c7-9092-0f2e8aa9f01b",
+      "name": "2.2.5 Restaurar mensagem",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        3960,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "22375826-7f22-4d1f-9195-76e9b10b4144",
+              "name": "evento",
+              "value": "falha_consulta_contato",
+              "type": "string"
+            },
+            {
+              "id": "8940821c-1dab-4418-a1ad-9e11643c9307",
+              "name": "detalhe",
+              "value": "={{ String($('2.2.4 Aplicar allowlist de teste').first().json.telefone ?? '') === '' ? 'sem telefone (chat @lid sem remoteJidAlt)' : 'falha na consulta do contato (erro ou resposta sem id)' }}",
+              "type": "string"
+            },
+            {
+              "id": "6422356f-fb23-49d2-98ca-854eca6f3a43",
+              "name": "idMensagem",
+              "value": "={{ $('2.2.4 Aplicar allowlist de teste').first().json.idMensagem }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "a32c2fee-91ef-4873-93d2-885c8d60916d",
+      "name": "2.2.5 Log falha consulta contato",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        3520,
+        560
+      ]
     }
   ],
   "connections": {
@@ -805,7 +1051,7 @@
       "main": [
         [
           {
-            "node": "2.3 Rotear por tipo",
+            "node": "2.2.5 Pular checagem (allowlist de teste)",
             "type": "main",
             "index": 0
           }
@@ -824,6 +1070,112 @@
         [
           {
             "node": "2.3 Mídia recebida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.2.5 Pular checagem (allowlist de teste)": {
+      "main": [
+        [
+          {
+            "node": "2.3 Rotear por tipo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "2.2.5 Ignorar contatos da lista",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.2.5 Ignorar contatos da lista": {
+      "main": [
+        [
+          {
+            "node": "2.2.5 Tem telefone?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.2.5 Tem telefone?": {
+      "main": [
+        [
+          {
+            "node": "2.2.5 Consultar contato",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "2.2.5 Log falha consulta contato",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.2.5 Consultar contato": {
+      "main": [
+        [
+          {
+            "node": "2.2.5 Consulta válida?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "2.2.5 Log falha consulta contato",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.2.5 Consulta válida?": {
+      "main": [
+        [
+          {
+            "node": "2.2.5 Número desconhecido?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "2.2.5 Log falha consulta contato",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.2.5 Número desconhecido?": {
+      "main": [
+        [
+          {
+            "node": "2.2.5 Restaurar mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "2.2.5 Restaurar mensagem": {
+      "main": [
+        [
+          {
+            "node": "2.3 Rotear por tipo",
             "type": "main",
             "index": 0
           }

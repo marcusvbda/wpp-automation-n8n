@@ -11,7 +11,7 @@ session. Phase status is updated in place in this file.
 | ----- | ------------------------------------------------------ | ------------- | ---------- | ---- | ------- |
 | 1     | Live probe: payload fields, contact signal, node types | n8n-workflows | none       | S    | DONE |
 | 2     | Redis credential for the bot                           | node-service  | none       | S    | DONE    |
-| 3     | Workflow skeleton: config, intake, filters 1–4, types  | n8n-workflows | 1, 2       | M    | PENDING |
+| 3     | Workflow skeleton: config, intake, filters 1–4, types  | n8n-workflows | 1, 2       | M    | DONE    |
 | 4     | Filter 5: only numbers not in the phone's agenda       | n8n-workflows | 1, 3       | S    | PENDING |
 | 5     | Pause and attendant detection                          | n8n-workflows | 3          | S    | PENDING |
 | 6     | Handoff block and media path                           | n8n-workflows | 5          | M    | PENDING |
@@ -225,7 +225,9 @@ Spec: 3, 4, 5.1, 6
 
 ### Phase 3 — Workflow skeleton: config, intake, filters 1–4, message types
 
-Status: PENDING
+Status: DONE
+Evidence: `workflows/chatbot-waha-divercity.json` created: workflow id `B1fRwNFx0bFdHYGI`, trigger `webhookId` `33e5dd5f-b628-4552-ba1c-d5cf09b54deb`, `active: false`, no `pinData`. `jq empty workflows/*.json` passes, all connection targets exist, all 16 non-sticky nodes sit inside a sticky note, names are prefixed except `CONFIG`/`INSTRUCOES`, `PERSONA_E_REGRAS` is byte-identical to Annex A, the secrets grep shows only the `COLE_O_TOKEN_AQUI` placeholder. The normalizer's Code node was exercised in node with synthetic payloads (text, image with caption, reaction, sticker, no-`_data` audio, `@lid` with `remoteJidAlt`). The workflow was imported into n8n unpublished (not run, n8n not restarted) and lists as inactive. `code-reviewer`: APPROVED.
+Deviations and additions (report in Phase 12): (1) `chatId = (fromMe && to) ? to : from` instead of `fromMe ? to : from`, because private chats arrive as `@lid` with `to = null` (Phase 1); (2) `2.2.0` dedupe added, with a third node `2.2.0 Restaurar mensagem` because Redis `incr` replaces the item; (3) `2.1 Extrair mensagem` (Set) + `2.1 Normalizar mensagem` (Code, 39 lines) instead of a single Set; (4) `2.2.1` also drops an empty `chatId`; (5) `3 Nota Atendente` sticky title is a guess, to confirm in Phase 5. Non-blocking: `telefone` can be `''` for an `@lid` without `remoteJidAlt`, so later phases must not assume it is set; an empty `idMensagem` would share one dedupe key (theoretical); a sticker without `_data` and with `hasMedia` is classified `documento` (edge case). Leftover: `/tmp/divercity-import.json` in the n8n container (harmless; `rm` was denied).
 Role: n8n-workflows · Depends on: 1, 2 · Covers: AC 16, 17, 6 (type routing) · Size: M
 Spec: 0, 1, 2 (2.1, 2.2 items 1–4, 2.3 routing)
 

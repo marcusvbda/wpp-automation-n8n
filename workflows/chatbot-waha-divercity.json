@@ -1,0 +1,838 @@
+{
+  "name": "chatbot-waha-divercity",
+  "id": "B1fRwNFx0bFdHYGI",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## 1 CONFIG e INSTRUÇÕES — valores que o dono edita\nDois nós Set com todos os valores ajustáveis do bot; nada fica fixo nos outros nós.",
+        "height": 240,
+        "width": 480,
+        "color": 7
+      },
+      "id": "b7ff9ed5-9c4d-405f-8f87-2695107b8c81",
+      "name": "1 Nota CONFIG e INSTRUÇÕES",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        380,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 2 Entrada e filtros — normaliza e descarta o que o bot não deve responder\nRecebe o evento do WAHA, normaliza a mensagem e descarta grupos, duplicadas, antigas e fora da allowlist antes de rotear por tipo.",
+        "height": 400,
+        "width": 3480,
+        "color": 7
+      },
+      "id": "0ceb129a-f8da-41d2-933b-3e90a18cddba",
+      "name": "2 Nota Entrada e filtros",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 3 Pausa e atendente — mensagens enviadas pela atendente\nMensagens enviadas pelo próprio número terminam aqui até a Fase 5 tratar a pausa do bot.",
+        "height": 220,
+        "width": 320,
+        "color": 7
+      },
+      "id": "d7441811-5b7b-44bc-9845-d6c53db3b7c8",
+      "name": "3 Nota Atendente",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2300,
+        740
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "7d207e71-68ab-4897-953c-2b3a14b8ef03",
+      "name": "2.1 Receber evento WAHA",
+      "type": "@devlikeapro/n8n-nodes-waha.wahaTrigger",
+      "typeVersion": 202502,
+      "position": [
+        0,
+        500
+      ],
+      "webhookId": "33e5dd5f-b628-4552-ba1c-d5cf09b54deb"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "de8fc5d2-fba6-4b75-bf8a-d98fd4317058",
+              "name": "API_BASE_URL",
+              "value": "https://www.divercitypark.com.br/api/v1",
+              "type": "string"
+            },
+            {
+              "id": "d67e16ca-fa5d-4c5a-9460-dcebfd4db93d",
+              "name": "SITE_API_TOKEN",
+              "value": "COLE_O_TOKEN_AQUI",
+              "type": "string"
+            },
+            {
+              "id": "fbcc43f3-1af4-4f4d-a870-d27c1a339796",
+              "name": "PATH_PRECOS",
+              "value": "/content/prices",
+              "type": "string"
+            },
+            {
+              "id": "cdb1a343-201d-41a6-8553-e30ac3f8e379",
+              "name": "PATH_HORARIOS",
+              "value": "/content/hours",
+              "type": "string"
+            },
+            {
+              "id": "2d0bb659-5446-4b88-ba68-41fd3c81f566",
+              "name": "WAHA_SESSION",
+              "value": "Default",
+              "type": "string"
+            },
+            {
+              "id": "29e31192-100d-457c-ac43-b4ccae011526",
+              "name": "GRUPO_ATENDIMENTO_ID",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "870d6ca3-0744-4603-b1af-b3f7f54b7085",
+              "name": "INCLUIR_LINK_WA",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "e1984f8f-7e1d-46e0-aff3-7cd6c5f3eef2",
+              "name": "MODO_TESTE",
+              "value": true,
+              "type": "boolean"
+            },
+            {
+              "id": "9acda8e5-e932-4a8e-bdf9-b6d6b110b643",
+              "name": "ALLOWLIST",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "c2093b0f-ae19-48f0-937c-df0b946ca63c",
+              "name": "CONTATOS_IGNORADOS",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "529639cf-97b5-404d-bdc7-743139cf76ee",
+              "name": "OPENAI_MODEL",
+              "value": "gpt-4o-mini",
+              "type": "string"
+            },
+            {
+              "id": "e24435f3-5774-4267-b92f-17c73d471ffc",
+              "name": "TEMPERATURA",
+              "value": 0.2,
+              "type": "number"
+            },
+            {
+              "id": "fc34577a-6d08-4e2f-8ad1-7de8ea4eb932",
+              "name": "DEBOUNCE_SEGUNDOS",
+              "value": 5,
+              "type": "number"
+            },
+            {
+              "id": "38d215c3-5f2c-4c55-9c69-eb370e3b439a",
+              "name": "MEMORIA_TTL_HORAS",
+              "value": 6,
+              "type": "number"
+            },
+            {
+              "id": "712403b2-85ad-4c81-a2e7-ea588968427b",
+              "name": "MEMORIA_MENSAGENS",
+              "value": 10,
+              "type": "number"
+            },
+            {
+              "id": "3c38902f-16fe-4bfc-ad00-a543531488a8",
+              "name": "PAUSA_HORAS",
+              "value": 12,
+              "type": "number"
+            },
+            {
+              "id": "24c6e534-a7f7-4c79-85b3-c44d5e23de58",
+              "name": "MAX_IDADE_MSG_SEGUNDOS",
+              "value": 300,
+              "type": "number"
+            },
+            {
+              "id": "56a95adf-648b-4db2-9d3e-8dc23026b96a",
+              "name": "TIMEZONE",
+              "value": "America/Sao_Paulo",
+              "type": "string"
+            },
+            {
+              "id": "86667cca-25c1-40c7-9217-86655623182f",
+              "name": "DIAS_CALENDARIO",
+              "value": 21,
+              "type": "number"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "1825b46b-2a19-46ad-8048-9b7343ce8948",
+      "name": "CONFIG",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        440,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d5a47e4d-8565-4002-b926-63966fb0fb7e",
+              "name": "PERSONA_E_REGRAS",
+              "value": "Você é o Dry, assistente virtual do Divercity Park, atendendo clientes pelo WhatsApp.\nFale em português do Brasil, de forma simpática, curta e direta (1 a 4 linhas por mensagem,\nno máximo um emoji). Se não houver mensagens anteriores na memória, apresente-se como\nassistente virtual.\n\nO QUE VOCÊ FAZ\n- Informar preço de passaporte (entrada), horário de funcionamento e o que estiver em\n  \"FATOS DO PARQUE\".\n- Todo o resto você encaminha para a atendente (status \"humano\").\n\nREGRAS\n1. Nunca invente preço, horário, regra ou desconto. Use só o que vier das ferramentas,\n   de \"FATOS DO PARQUE\" ou de \"AVISOS DE HOJE\". Se o aviso contradiz outra informação, o aviso vale.\n2. Preço e horário: sempre consulte a ferramenta antes de responder. Não reaproveite valores\n   de mensagens anteriores.\n3. Se a ferramenta falhar, vier vazia ou você não tiver certeza: status \"humano\".\n4. Festa, aniversário, orçamento, reserva do salão, data, disponibilidade, pagamento,\n   reclamação ou pedido para falar com uma pessoa: status \"humano\". Não informe preço de festa.\n5. Nunca prometa nada em nome do parque (desconto, reserva, exceção).\n\nPASSAPORTE\n- Tem preço de criança e de acompanhante, por duração (30 min, 1 h, 2 h, 3 h).\n- O preço depende do dia: use o CALENDÁRIO abaixo para saber qual preço vale na data.\n  Se o cliente não disse o dia da visita, pergunte antes de informar um valor.\n- Escreva valores como R$ 45,00. Informe só as durações que o cliente pediu; se não pediu\n  nenhuma, ofereça as opções.\n\nHORÁRIO\n- Use a faixa do dia indicada no CALENDÁRIO e o horário da ferramenta.\n- Para \"estão abertos agora?\", compare a hora atual (horário de Brasília) com a faixa de hoje.\n\nSTATUS (sempre no JSON de saída)\n- \"continua\": você respondeu e a conversa segue.\n- \"resolvido\": o cliente disse que era só isso, agradeceu ou as dúvidas foram atendidas.\n  Despeça-se em uma linha (\"Qualquer dúvida é só chamar!\").\n- \"humano\": precisa de atendente. \"resposta\" avisa o cliente que uma atendente vai\n  continuar a conversa; \"motivo\" é curto; \"resumo\" tem até 3 linhas com o que o cliente\n  perguntou e onde parou.",
+              "type": "string"
+            },
+            {
+              "id": "66e9b520-9ccc-4957-899b-e0447e160d1d",
+              "name": "FATOS_DO_PARQUE",
+              "value": "Endereço: [PREENCHER]\nRegras de entrada: [PREENCHER]\nPolítica de acompanhante: [PREENCHER]\nDescontos: [PREENCHER]\nEstacionamento: [PREENCHER]",
+              "type": "string"
+            },
+            {
+              "id": "bc4447c4-fadb-403a-a75a-75363cd22d52",
+              "name": "AVISOS_DE_HOJE",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "97e9e873-af10-402d-a1d3-37350346d3f8",
+              "name": "FERIADOS",
+              "value": "2026-10-12,2026-11-02,2026-11-15,2026-11-20,2026-12-25,2027-01-01",
+              "type": "string"
+            },
+            {
+              "id": "5916b781-f156-4955-80b5-d4ba7e136bc8",
+              "name": "MSG_HANDOFF_CLIENTE",
+              "value": "Vou chamar uma das nossas atendentes pra te ajudar com isso. Ela te responde por aqui em breve.",
+              "type": "string"
+            },
+            {
+              "id": "2de3261f-2659-4855-a759-660309532fbe",
+              "name": "MSG_MIDIA",
+              "value": "Por enquanto eu só consigo ler mensagens de texto. Vou chamar uma atendente pra te ajudar.",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "619bfc42-0831-4a85-9d74-5eadbe84f8e6",
+      "name": "INSTRUCOES",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        660,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3ed022ce-fd42-41ce-99ff-49562945fde4",
+              "name": "idMensagem",
+              "value": "={{ $('2.1 Receber evento WAHA').first().json.payload?.id ?? '' }}",
+              "type": "string"
+            },
+            {
+              "id": "b07c148d-7759-444d-809e-d3a71fd92a13",
+              "name": "sessao",
+              "value": "={{ $('2.1 Receber evento WAHA').first().json.session ?? '' }}",
+              "type": "string"
+            },
+            {
+              "id": "8b2ac14d-e05f-4953-a55b-c42866bd7bcc",
+              "name": "fromMe",
+              "value": "={{ $('2.1 Receber evento WAHA').first().json.payload?.fromMe === true }}",
+              "type": "boolean"
+            },
+            {
+              "id": "71d1e3ee-f5ea-42d2-ae5e-0710959c49fd",
+              "name": "source",
+              "value": "={{ String($('2.1 Receber evento WAHA').first().json.payload?.source ?? '') }}",
+              "type": "string"
+            },
+            {
+              "id": "512910b7-2aab-480d-904c-0de8e931fb02",
+              "name": "chatId",
+              "value": "={{ ($('2.1 Receber evento WAHA').first().json.payload?.fromMe === true && $('2.1 Receber evento WAHA').first().json.payload?.to) ? $('2.1 Receber evento WAHA').first().json.payload.to : ($('2.1 Receber evento WAHA').first().json.payload?.from ?? '') }}",
+              "type": "string"
+            },
+            {
+              "id": "781186a6-b3ec-4901-87a4-996943a8d120",
+              "name": "timestamp",
+              "value": "={{ Number($('2.1 Receber evento WAHA').first().json.payload?.timestamp ?? 0) }}",
+              "type": "number"
+            },
+            {
+              "id": "f1b2a30b-a617-4ecd-bec7-c66a95496ea3",
+              "name": "corpo",
+              "value": "={{ String($('2.1 Receber evento WAHA').first().json.payload?.body ?? '').trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "f19762b3-4759-4817-9940-951599e3ac5a",
+              "name": "hasMedia",
+              "value": "={{ !!$('2.1 Receber evento WAHA').first().json.payload?.hasMedia }}",
+              "type": "boolean"
+            },
+            {
+              "id": "338c955b-0acc-455b-b1de-56fe379d39d0",
+              "name": "mimetype",
+              "value": "={{ String($('2.1 Receber evento WAHA').first().json.payload?.media?.mimetype ?? '') }}",
+              "type": "string"
+            },
+            {
+              "id": "25a6ccd8-12e2-4f98-b10e-065b0ddd614f",
+              "name": "nomeContato",
+              "value": "={{ String($('2.1 Receber evento WAHA').first().json.payload?._data?.pushName ?? '') }}",
+              "type": "string"
+            },
+            {
+              "id": "113fe0ac-637b-42e6-8321-8d1e9127448c",
+              "name": "remoteJidAlt",
+              "value": "={{ String($('2.1 Receber evento WAHA').first().json.payload?._data?.key?.remoteJidAlt ?? '') }}",
+              "type": "string"
+            },
+            {
+              "id": "8492bbd3-1399-43ef-a449-916a91517bcc",
+              "name": "temDados",
+              "value": "={{ !!$('2.1 Receber evento WAHA').first().json.payload?._data?.message }}",
+              "type": "boolean"
+            },
+            {
+              "id": "5b0fe274-30a2-4a1a-a33c-f85a91a34d7b",
+              "name": "conteudo",
+              "value": "={{ ['ephemeralMessage', 'viewOnceMessage', 'viewOnceMessageV2', 'editedMessage'].reduce((m, w) => m?.[w]?.message ?? m, $('2.1 Receber evento WAHA').first().json.payload?._data?.message) ?? {} }}",
+              "type": "object"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "dd9de74b-36fa-42ba-849d-4d1e31580327",
+      "name": "2.1 Extrair mensagem",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        880,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Normaliza o payload extraído para o formato único usado no restante do fluxo\nconst IGNORAR_CHAVES = ['messageContextInfo', 'senderKeyDistributionMessage'];\nconst POR_CHAVE = { audioMessage: 'audio', imageMessage: 'imagem', videoMessage: 'video', documentMessage: 'documento', documentWithCaptionMessage: 'documento',\n  locationMessage: 'localizacao', liveLocationMessage: 'localizacao', contactMessage: 'contato', contactsArrayMessage: 'contato', stickerMessage: 'figurinha' };\nconst ROTULOS = { audio: 'áudio', imagem: 'imagem', video: 'vídeo', documento: 'documento', localizacao: 'localização', contato: 'contato' };\nconst COM_LEGENDA = ['imagem', 'video', 'documento'];\nconst soDigitos = (jid) => String(jid).split('@')[0].split(':')[0].replace(/\\D/g, '');\nreturn $input.all().map((item) => {\n  const j = item.json;\n  let tipo = 'ignorar';\n  let texto = '';\n  let legendaInterna = '';\n  if (j.temDados) {\n    const c = j.conteudo ?? {};\n    const chave = Object.keys(c).find((k) => !IGNORAR_CHAVES.includes(k)) ?? '';\n    if (chave === 'conversation' || chave === 'extendedTextMessage') {\n      const interno = String(c.conversation ?? c.extendedTextMessage?.text ?? '').trim();\n      if (interno) { tipo = 'texto'; texto = j.corpo || interno; }\n    } else {\n      tipo = POR_CHAVE[chave] ?? 'ignorar';\n      legendaInterna = String(c[chave]?.caption ?? c.documentWithCaptionMessage?.message?.documentMessage?.caption ?? '');\n    }\n  } else if (!j.hasMedia) {\n    if (j.corpo) { tipo = 'texto'; texto = j.corpo; }\n  } else {\n    // sem _data: decide pelo mimetype\n    tipo = j.mimetype.startsWith('audio') ? 'audio' : j.mimetype.startsWith('image') ? 'imagem' : j.mimetype.startsWith('video') ? 'video' : 'documento';\n  }\n  const chatId = String(j.chatId ?? '');\n  const alt = String(j.remoteJidAlt ?? '');\n  const telefone = alt.endsWith('@s.whatsapp.net') ? soDigitos(alt)\n    : (chatId.endsWith('@c.us') || chatId.endsWith('@s.whatsapp.net')) ? soDigitos(chatId) : '';\n  return { json: {\n    idMensagem: j.idMensagem, sessao: j.sessao, fromMe: j.fromMe, source: j.source, chatId,\n    timestamp: j.timestamp, tipo, tipoLabel: ROTULOS[tipo] ?? '', texto,\n    legenda: COM_LEGENDA.includes(tipo) ? (j.corpo || legendaInterna) : '',\n    nomeContato: j.nomeContato, telefone, ehLid: chatId.endsWith('@lid'),\n  } };\n});"
+      },
+      "id": "5ac4a114-aa46-4d56-91fc-fa2031b116ad",
+      "name": "2.1 Normalizar mensagem",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "5ff78197-1bcb-473c-84f1-c64a38d5960b",
+              "leftValue": "={{ String($json.chatId ?? '') !== '' && !['@g.us', '@broadcast', '@newsletter'].some(s => String($json.chatId).endsWith(s)) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f84f7565-936d-4f0f-9f17-706d967936f5",
+      "name": "2.2.1 Ignorar grupos e canais",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        1320,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "incr",
+        "key": "={{ 'entrega:' + $('2.1 Normalizar mensagem').first().json.idMensagem }}",
+        "expire": true,
+        "ttl": "={{ $('CONFIG').first().json.MAX_IDADE_MSG_SEGUNDOS * 2 }}"
+      },
+      "id": "34e0c423-0dc0-4826-a15c-37e4e2a4b609",
+      "name": "2.2.0 Contar entrega",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1540,
+        500
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "77f93da7-d385-40f7-a0ed-ff649e8d84f3",
+              "leftValue": "={{ Number(Object.values($json)[0]) === 1 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "7c353bfb-c9dc-4e5b-bc6e-dd63c81be185",
+      "name": "2.2.0 Manter primeira entrega",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        1760,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ $('2.1 Normalizar mensagem').first().json }}",
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "59e866bd-c382-4043-80a5-9ff77e06102b",
+      "name": "2.2.0 Restaurar mensagem",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1980,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "d68874bc-336b-46d3-b6bb-6a851bb273bd",
+              "leftValue": "={{ $json.fromMe }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "fbe16a36-cea0-4882-9711-a70b6387094b",
+      "name": "2.2.2 Enviada por mim?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2200,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "84b983e0-286b-4e4c-86fa-a62ebaeea1d7",
+              "leftValue": "={{ Math.floor(Date.now() / 1000) - $json.timestamp <= $('CONFIG').first().json.MAX_IDADE_MSG_SEGUNDOS }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c5ab35a0-45ad-49ae-a9a3-b0732f65f9d7",
+      "name": "2.2.3 Ignorar mensagens antigas",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        2420,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "95bf93f8-5a0e-4272-9f72-6e069387e483",
+              "leftValue": "={{ !$('CONFIG').first().json.MODO_TESTE || String($('CONFIG').first().json.ALLOWLIST ?? '').split(',').map(s => s.trim()).filter(Boolean).includes($json.telefone) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "05badd7c-8c9b-481e-8583-bed6074b6e5e",
+      "name": "2.2.4 Aplicar allowlist de teste",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        2640,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "863792f2-b596-4a96-9af6-5df06cd9012f",
+                    "leftValue": "={{ $json.tipo === 'texto' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "texto"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "7fa72932-c148-4c27-a4c4-c4f991a6a295",
+                    "leftValue": "={{ ['audio', 'imagem', 'video', 'documento', 'localizacao', 'contato'].includes($json.tipo) }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "midia"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "da1ba202-def4-478c-992d-eeee71b1b76e",
+      "name": "2.3 Rotear por tipo",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        2860,
+        500
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "06cf8f02-5df3-4cb1-b60f-a8aa8bc90f0f",
+      "name": "2.3 Texto aceito",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        3100,
+        420
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "09c567bb-67f7-426e-a603-cf2bf2fe0208",
+      "name": "2.3 Mídia recebida",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        3100,
+        580
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "f9d8da6c-1603-4f0a-b7bb-7a2a90479294",
+      "name": "3.0 Enviada por mim (checar atendente)",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2420,
+        800
+      ]
+    }
+  ],
+  "connections": {
+    "2.1 Receber evento WAHA": {
+      "main": [
+        [],
+        [],
+        [],
+        [
+          {
+            "node": "CONFIG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CONFIG": {
+      "main": [
+        [
+          {
+            "node": "INSTRUCOES",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INSTRUCOES": {
+      "main": [
+        [
+          {
+            "node": "2.1 Extrair mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.1 Extrair mensagem": {
+      "main": [
+        [
+          {
+            "node": "2.1 Normalizar mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.1 Normalizar mensagem": {
+      "main": [
+        [
+          {
+            "node": "2.2.1 Ignorar grupos e canais",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.2.1 Ignorar grupos e canais": {
+      "main": [
+        [
+          {
+            "node": "2.2.0 Contar entrega",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.2.0 Contar entrega": {
+      "main": [
+        [
+          {
+            "node": "2.2.0 Manter primeira entrega",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.2.0 Manter primeira entrega": {
+      "main": [
+        [
+          {
+            "node": "2.2.0 Restaurar mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.2.0 Restaurar mensagem": {
+      "main": [
+        [
+          {
+            "node": "2.2.2 Enviada por mim?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.2.2 Enviada por mim?": {
+      "main": [
+        [
+          {
+            "node": "3.0 Enviada por mim (checar atendente)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "2.2.3 Ignorar mensagens antigas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.2.3 Ignorar mensagens antigas": {
+      "main": [
+        [
+          {
+            "node": "2.2.4 Aplicar allowlist de teste",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.2.4 Aplicar allowlist de teste": {
+      "main": [
+        [
+          {
+            "node": "2.3 Rotear por tipo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.3 Rotear por tipo": {
+      "main": [
+        [
+          {
+            "node": "2.3 Texto aceito",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "2.3 Mídia recebida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "FF0x666oa1bfHLDI"
+  }
+}

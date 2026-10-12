@@ -1863,6 +1863,434 @@
         880,
         1390
       ]
+    },
+    {
+      "parameters": {
+        "content": "## 6 Agente — responde preço e horário pela API do site e decide o status\nO agente consulta preços e horários nas ferramentas HTTP, responde ao cliente e devolve resposta, status (continua, resolvido ou humano), motivo e resumo; o status roteia para resposta, encerramento ou handoff.",
+        "height": 520,
+        "width": 980,
+        "color": 7
+      },
+      "name": "6 Nota Agente",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1280,
+        1250
+      ],
+      "id": "16d3830b-42d3-465f-ae4b-00ba7fe0edee"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.textoCliente }}",
+        "hasOutputParser": true,
+        "options": {
+          "systemMessage": "={{ $json.mensagemSistema }}"
+        }
+      },
+      "name": "6.1 Responder cliente",
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 3.1,
+      "position": [
+        1400,
+        1390
+      ],
+      "onError": "continueErrorOutput",
+      "id": "bc942786-44d3-45fb-a0c5-2feebbf6e0ca"
+    },
+    {
+      "parameters": {
+        "model": {
+          "__rl": true,
+          "value": "={{ $('CONFIG').first().json.OPENAI_MODEL }}",
+          "mode": "id"
+        },
+        "options": {
+          "temperature": "={{ $('CONFIG').first().json.TEMPERATURA }}"
+        }
+      },
+      "name": "6.1 Modelo OpenAI",
+      "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
+      "typeVersion": 1.3,
+      "position": [
+        1340,
+        1610
+      ],
+      "credentials": {
+        "openAiApi": {
+          "id": "KFZp3oDrOgr20VBL",
+          "name": "OpenAI account"
+        }
+      },
+      "id": "099371cd-b19c-46a9-8de6-8ee901707905"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "={{ $('5.3 Contexto pronto').first().json.sessionKey }}",
+        "sessionTTL": "={{ Math.max(1, Math.round($('CONFIG').first().json.MEMORIA_TTL_HORAS * 3600)) }}",
+        "contextWindowLength": "={{ $('CONFIG').first().json.MEMORIA_MENSAGENS }}"
+      },
+      "name": "6.1 Memória da conversa",
+      "type": "@n8n/n8n-nodes-langchain.memoryRedisChat",
+      "typeVersion": 1.6,
+      "position": [
+        1480,
+        1610
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      },
+      "id": "b8b01c8f-0bb6-4ec7-8dce-1548624bc867"
+    },
+    {
+      "parameters": {
+        "schemaType": "manual",
+        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"resposta\": {\n      \"type\": \"string\"\n    },\n    \"status\": {\n      \"type\": \"string\",\n      \"enum\": [\n        \"continua\",\n        \"resolvido\",\n        \"humano\"\n      ]\n    },\n    \"motivo\": {\n      \"type\": \"string\"\n    },\n    \"resumo\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"maxItems\": 3\n    }\n  },\n  \"required\": [\n    \"resposta\",\n    \"status\"\n  ]\n}",
+        "autoFix": false
+      },
+      "name": "6.1 Ler resposta estruturada",
+      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
+      "typeVersion": 1.3,
+      "position": [
+        1620,
+        1610
+      ],
+      "id": "064b224c-c24c-4b54-97fb-fe8d3d08fdb9"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Lista os preços de passaporte (criança e acompanhante, por duração). weekdayPrice = segunda a quinta; weekendPrice = sexta a domingo e feriados. Linhas com key terminando em `_child` = criança, `_companion` = acompanhante.",
+        "method": "GET",
+        "url": "={{ $('CONFIG').first().json.API_BASE_URL }}{{ $('CONFIG').first().json.PATH_PRECOS }}?type=passaportes&perPage=100",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "parametersHeaders": {
+          "values": [
+            {
+              "name": "Authorization",
+              "valueProvider": "fieldValue",
+              "value": "=Bearer {{ $('CONFIG').first().json.SITE_API_TOKEN }}"
+            }
+          ]
+        }
+      },
+      "name": "consultar_passaportes",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        1760,
+        1610
+      ],
+      "id": "0aacbef3-c22f-4c7e-8ebe-e149d996fb18"
+    },
+    {
+      "parameters": {
+        "toolDescription": "Lista os horários de funcionamento. Use a chave (key): weekdays = segunda a sábado; sundays_holidays = domingos e feriados. Nunca decida pelo label.",
+        "method": "GET",
+        "url": "={{ $('CONFIG').first().json.API_BASE_URL }}{{ $('CONFIG').first().json.PATH_HORARIOS }}?perPage=100",
+        "sendHeaders": true,
+        "specifyHeaders": "keypair",
+        "parametersHeaders": {
+          "values": [
+            {
+              "name": "Authorization",
+              "valueProvider": "fieldValue",
+              "value": "=Bearer {{ $('CONFIG').first().json.SITE_API_TOKEN }}"
+            }
+          ]
+        }
+      },
+      "name": "consultar_horarios",
+      "type": "@n8n/n8n-nodes-langchain.toolHttpRequest",
+      "typeVersion": 1.1,
+      "position": [
+        1900,
+        1610
+      ],
+      "id": "547a932e-3a23-4d50-bfa8-9695241b7828"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "c9bdd18d-93dd-4c07-ba7d-637bbbaf8edd",
+                    "leftValue": "={{ $json.output?.status }}",
+                    "rightValue": "humano",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "humano"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "e09f3196-1ae4-4338-b25d-1911bc8b5185",
+                    "leftValue": "={{ $json.output?.status }}",
+                    "rightValue": "continua",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  },
+                  {
+                    "id": "3384ba71-2b4e-4e31-984c-6cd65a8b6824",
+                    "leftValue": "={{ String($json.output?.resposta ?? '').trim() }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEmpty",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "continua"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "5e4adc5a-af08-4df1-b2dd-af526e114654",
+                    "leftValue": "={{ $json.output?.status }}",
+                    "rightValue": "resolvido",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  },
+                  {
+                    "id": "e47826f2-ba6a-4218-a125-9c618b1493b7",
+                    "leftValue": "={{ String($json.output?.resposta ?? '').trim() }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEmpty",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "resolvido"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "falha técnica"
+        }
+      },
+      "name": "7.0 Rotear por status",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        1660,
+        1390
+      ],
+      "id": "16a22f61-8252-4fa8-9fb8-1ac2aa790c68"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b04d228a-77c7-437c-82ac-af087e995b5a",
+              "name": "resposta",
+              "value": "={{ $json.output.resposta }}",
+              "type": "string"
+            },
+            {
+              "id": "9a5d4e21-5e3a-43b0-8776-63f41d278e37",
+              "name": "motivo",
+              "value": "={{ $json.output.motivo ?? '' }}",
+              "type": "string"
+            },
+            {
+              "id": "99eff45a-5cbf-42ed-a15d-78cea2c09455",
+              "name": "resumo",
+              "value": "={{ $json.output.resumo ?? [] }}",
+              "type": "array"
+            },
+            {
+              "id": "faf343f5-b83a-4915-a03b-8cdcb8fa37f9",
+              "name": "ultimoTexto",
+              "value": "={{ $('5.3 Contexto pronto').first().json.textoCliente }}",
+              "type": "string"
+            },
+            {
+              "id": "b8e7316d-9def-47af-9dc9-9b489972759e",
+              "name": "chatId",
+              "value": "={{ $('5.3 Contexto pronto').first().json.chatId }}",
+              "type": "string"
+            },
+            {
+              "id": "303f7489-98d6-4701-a6f6-472f4ff59559",
+              "name": "telefone",
+              "value": "={{ String($('5.3 Contexto pronto').first().json.telefone ?? '') }}",
+              "type": "string"
+            },
+            {
+              "id": "d95dc484-e645-46a4-b3fc-548242297804",
+              "name": "nomeContato",
+              "value": "={{ String($('5.3 Contexto pronto').first().json.nomeContato ?? '') }}",
+              "type": "string"
+            },
+            {
+              "id": "cee26d4f-ec1e-47d9-84c8-4fb7f192fc97",
+              "name": "ehLid",
+              "value": "={{ !!$('5.3 Contexto pronto').first().json.ehLid }}",
+              "type": "boolean"
+            },
+            {
+              "id": "76212d87-98d8-4fb4-b1cd-3a324afcab5f",
+              "name": "sessao",
+              "value": "={{ $('5.3 Contexto pronto').first().json.sessao }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "name": "7.0 Preparar handoff do agente",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1940,
+        1290
+      ],
+      "id": "dd083544-1483-42f8-abfe-d8d7f2733ac5"
+    },
+    {
+      "parameters": {},
+      "name": "7.1 Resposta pronta",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1940,
+        1400
+      ],
+      "id": "6d3464d2-9a04-4031-bbdc-2a20a5b93e43"
+    },
+    {
+      "parameters": {},
+      "name": "7.2 Encerramento pronto",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1940,
+        1490
+      ],
+      "id": "d88d8507-5f3b-4d1d-82b4-0c2e1bc887ea"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ffbe91a5-e414-4bbe-a0c3-3b164d471496",
+              "name": "resposta",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "6544f2af-4723-4a9d-b7cb-4f6b72dea62c",
+              "name": "motivo",
+              "value": "falha técnica",
+              "type": "string"
+            },
+            {
+              "id": "22257997-d3c2-40af-ae0f-5be981331931",
+              "name": "resumo",
+              "value": "={{ [] }}",
+              "type": "array"
+            },
+            {
+              "id": "39e9dfac-70fc-4c09-88a4-9d4bdfe70bc6",
+              "name": "ultimoTexto",
+              "value": "={{ $('5.3 Contexto pronto').first().json.textoCliente }}",
+              "type": "string"
+            },
+            {
+              "id": "025f7740-680e-4cc5-844c-4901cf3740c0",
+              "name": "chatId",
+              "value": "={{ $('5.3 Contexto pronto').first().json.chatId }}",
+              "type": "string"
+            },
+            {
+              "id": "cbfaa1c9-8671-4fe6-aab0-93b4e70e5ae7",
+              "name": "telefone",
+              "value": "={{ String($('5.3 Contexto pronto').first().json.telefone ?? '') }}",
+              "type": "string"
+            },
+            {
+              "id": "ebd40208-1328-4868-bfb1-c06150261dde",
+              "name": "nomeContato",
+              "value": "={{ String($('5.3 Contexto pronto').first().json.nomeContato ?? '') }}",
+              "type": "string"
+            },
+            {
+              "id": "c28e38f5-1ee9-4916-88e1-d7225b8d91b2",
+              "name": "ehLid",
+              "value": "={{ !!$('5.3 Contexto pronto').first().json.ehLid }}",
+              "type": "boolean"
+            },
+            {
+              "id": "33b32440-ad35-42f2-a50b-0836f99a74e9",
+              "name": "sessao",
+              "value": "={{ $('5.3 Contexto pronto').first().json.sessao }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "name": "6.3 Preparar falha técnica",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        2100,
+        1610
+      ],
+      "id": "7eed1dd6-5cf2-468e-bfc9-316eeb191a8f"
     }
   ],
   "connections": {
@@ -2501,6 +2929,144 @@
           {
             "node": "5.3 Contexto pronto",
             "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "5.3 Contexto pronto": {
+      "main": [
+        [
+          {
+            "node": "6.1 Responder cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "6.1 Responder cliente": {
+      "main": [
+        [
+          {
+            "node": "7.0 Rotear por status",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "6.3 Preparar falha técnica",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.0 Rotear por status": {
+      "main": [
+        [
+          {
+            "node": "7.0 Preparar handoff do agente",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "7.1 Resposta pronta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "7.2 Encerramento pronto",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "6.3 Preparar falha técnica",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.0 Preparar handoff do agente": {
+      "main": [
+        [
+          {
+            "node": "7.3 Preparar handoff",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "6.3 Preparar falha técnica": {
+      "main": [
+        [
+          {
+            "node": "7.3 Preparar handoff",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "6.1 Modelo OpenAI": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "6.1 Responder cliente",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "6.1 Memória da conversa": {
+      "ai_memory": [
+        [
+          {
+            "node": "6.1 Responder cliente",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "6.1 Ler resposta estruturada": {
+      "ai_outputParser": [
+        [
+          {
+            "node": "6.1 Responder cliente",
+            "type": "ai_outputParser",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "consultar_passaportes": {
+      "ai_tool": [
+        [
+          {
+            "node": "6.1 Responder cliente",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "consultar_horarios": {
+      "ai_tool": [
+        [
+          {
+            "node": "6.1 Responder cliente",
+            "type": "ai_tool",
             "index": 0
           }
         ]

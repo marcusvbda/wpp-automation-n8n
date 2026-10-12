@@ -17,7 +17,7 @@ session. Phase status is updated in place in this file.
 | 6     | Handoff block and media path                           | n8n-workflows | 5          | M    | DONE     |
 | 7     | Debounce (group messages)                              | n8n-workflows | 5          | M    | DONE     |
 | 8     | Conversation session and context                       | n8n-workflows | 7          | M    | DONE     |
-| 9     | Agent, tools, status routing to handoff                | n8n-workflows | 6, 8       | M    | PENDING |
+| 9     | Agent, tools, status routing to handoff                | n8n-workflows | 6, 8       | M    | DONE    |
 | 10    | Reply and close paths (`continua`, `resolvido`)        | n8n-workflows | 9          | S    | PENDING |
 | 11    | Hook routing, import and publish in test mode          | n8n-workflows | 2–10       | S    | PENDING |
 | 12    | Verification and report                                | n8n-workflows | 1–11       | M    | PENDING |
@@ -468,7 +468,11 @@ Spec: 5.1, 5.2
 
 ### Phase 9 — Agent, tools, status routing to handoff
 
-Status: PENDING
+Status: DONE
+Evidence: block 6 added (`6 Nota Agente` sticky; `6.1 Responder cliente` agent 3.1 with `6.1 Modelo OpenAI`, `6.1 Memória da conversa`, `6.1 Ler resposta estruturada`; tools `consultar_passaportes` / `consultar_horarios`; `7.0 Rotear por status`, `7.0 Preparar handoff do agente`, `7.1 Resposta pronta`, `7.2 Encerramento pronto`, `6.3 Preparar falha técnica`), wired `5.3 Contexto pronto` → agent → status switch → `7.3 Preparar handoff`. `jq empty workflows/*.json` passes, `active: false`, 76 nodes with unique names, no dangling connections (including `ai_*`), every node inside a sticky, no sticky overlap, no `pinData`, `SITE_API_TOKEN` still `COLE_O_TOKEN_AQUI`, secrets grep shows only the placeholder and the two Bearer expressions. Agent 3.1 / Redis memory 1.6 / OpenAI 1.3 / parser 1.3 / toolHttpRequest 1.1 parameter names read from the installed n8n 2.41.7 package. `code-reviewer`: APPROVED. Not done: no import and no live run (the n8n copy differs from the repo; first live run is Phase 11/12).
+Deviation: the tool nodes are named `consultar_passaportes` / `consultar_horarios` **without** the `6.2` prefix, because `toolHttpRequest` 1.1 derives the tool name from the node name (non-alphanumerics become `_`), so `6.2 consultar_passaportes` would reach the model as `6_2_consultar_passaportes` (not the spec's verbatim name, and it starts with a digit). Report in Phase 12.
+Interpretations: Switch uses loose type validation, so a missing `output.status` goes to the fallback; `7.1`/`7.2` must read `chatId` etc. from `$('5.3 Contexto pronto').first().json` in Phase 10 (the agent item carries only `output`); the `7.x` placeholders sit inside the block 6 sticky.
+Non-blocking (verify live in Phase 12): HTTP 401/5xx from a tool reaches the model as tool-output text, so "no invented price" on API failure rests on prompt rule 3, not on structure (add a guard if the model ignores it); the tool descriptions hard-code the `_child`/`_companion` and `weekdays`/`sundays_holidays` key semantics, to confirm against a real API response.
 Role: n8n-workflows · Depends on: 6, 8 · Covers: AC 1–5, 15 · Size: M
 Spec: 6, 7 (routing), 0.5
 

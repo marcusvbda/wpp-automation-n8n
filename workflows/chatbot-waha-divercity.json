@@ -37,9 +37,9 @@
     },
     {
       "parameters": {
-        "content": "## 3 Pausa e atendente — mensagens enviadas pela atendente\nMensagens enviadas pelo próprio número terminam aqui até a Fase 5 tratar a pausa do bot.",
-        "height": 220,
-        "width": 320,
+        "content": "## 3 Pausa e atendente humana — o bot fica calado enquanto uma pessoa atende o chat\nMensagem digitada pela atendente (não enviada pelo bot) pausa o chat por PAUSA_HORAS; chat pausado não recebe resposta do bot.",
+        "height": 420,
+        "width": 880,
         "color": 7
       },
       "id": "d7441811-5b7b-44bc-9845-d6c53db3b7c8",
@@ -658,17 +658,6 @@
       ]
     },
     {
-      "parameters": {},
-      "id": "f9d8da6c-1603-4f0a-b7bb-7a2a90479294",
-      "name": "3.0 Enviada por mim (checar atendente)",
-      "type": "n8n-nodes-base.noOp",
-      "typeVersion": 1,
-      "position": [
-        2420,
-        800
-      ]
-    },
-    {
       "parameters": {
         "conditions": {
           "options": {
@@ -913,6 +902,171 @@
         3520,
         560
       ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "propertyName": "marcaBot",
+        "key": "={{ 'bot-msg:' + String($('2.2.0 Restaurar mensagem').first().json.idMensagem).split('_').pop() }}",
+        "keyType": "string",
+        "options": {}
+      },
+      "id": "4b1f6a52-3c0e-4d7a-9a41-6e5c2f1d8a01",
+      "name": "3.1 Buscar marca de msg do bot",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        2420,
+        800
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a7c3e1d4-52b8-4f69-8d10-3b9e6a2c7f02",
+              "leftValue": "={{ $('2.2.0 Restaurar mensagem').first().json.source !== 'api' && !$json.marcaBot }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "5c2a7b63-4d1f-4e8b-8b52-7f6d3a2e9b03",
+      "name": "3.1 Digitada pela atendente?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2640,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "={{ 'pausa:' + $('2.2.0 Restaurar mensagem').first().json.chatId }}",
+        "value": "1",
+        "keyType": "string",
+        "expire": true,
+        "ttl": "={{ Math.max(1, Math.round($('CONFIG').first().json.PAUSA_HORAS * 3600)) }}"
+      },
+      "id": "6d3b8c74-5e20-4f9c-9c63-8a7e4b3f0a04",
+      "name": "3.1 Pausar chat",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        2860,
+        800
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "7e4c9d85-6f31-4a0d-8d74-9b8f5c4a1b05",
+      "name": "3.2 Mensagem do cliente",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2420,
+        1000
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "propertyName": "pausa",
+        "key": "={{ 'pausa:' + $('3.2 Mensagem do cliente').first().json.chatId }}",
+        "keyType": "string",
+        "options": {}
+      },
+      "id": "8f5dae96-7042-4b1e-9e85-ac906d5b2c06",
+      "name": "3.2 Buscar pausa",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        2640,
+        1000
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ $('3.2 Mensagem do cliente').first().json }}",
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "90a6ebf7-8153-4c2f-8fa6-bda17c6c3d07",
+      "name": "3.2 Restaurar mensagem",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        2860,
+        1000
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b1d7f2a8-6264-4d3a-8a07-ceb28d7e4f08",
+              "leftValue": "={{ !!$('3.2 Buscar pausa').first().json.pausa }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a1b7fc08-9264-4d30-8b18-dfc39e8f5a09",
+      "name": "3.2 Chat pausado?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3080,
+        1000
+      ]
     }
   ],
   "connections": {
@@ -1022,7 +1176,7 @@
       "main": [
         [
           {
-            "node": "3.0 Enviada por mim (checar atendente)",
+            "node": "3.1 Buscar marca de msg do bot",
             "type": "main",
             "index": 0
           }
@@ -1080,7 +1234,7 @@
       "main": [
         [
           {
-            "node": "2.3 Rotear por tipo",
+            "node": "3.2 Mensagem do cliente",
             "type": "main",
             "index": 0
           }
@@ -1173,6 +1327,74 @@
     },
     "2.2.5 Restaurar mensagem": {
       "main": [
+        [
+          {
+            "node": "3.2 Mensagem do cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3.1 Buscar marca de msg do bot": {
+      "main": [
+        [
+          {
+            "node": "3.1 Digitada pela atendente?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3.1 Digitada pela atendente?": {
+      "main": [
+        [
+          {
+            "node": "3.1 Pausar chat",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "3.2 Mensagem do cliente": {
+      "main": [
+        [
+          {
+            "node": "3.2 Buscar pausa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3.2 Buscar pausa": {
+      "main": [
+        [
+          {
+            "node": "3.2 Restaurar mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3.2 Restaurar mensagem": {
+      "main": [
+        [
+          {
+            "node": "3.2 Chat pausado?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3.2 Chat pausado?": {
+      "main": [
+        [],
         [
           {
             "node": "2.3 Rotear por tipo",

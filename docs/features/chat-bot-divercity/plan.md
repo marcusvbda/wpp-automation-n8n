@@ -13,7 +13,7 @@ session. Phase status is updated in place in this file.
 | 2     | Redis credential for the bot                           | node-service  | none       | S    | DONE    |
 | 3     | Workflow skeleton: config, intake, filters 1–4, types  | n8n-workflows | 1, 2       | M    | DONE    |
 | 4     | Filter 5: only numbers not in the phone's agenda       | n8n-workflows | 1, 3       | S    | DONE    |
-| 5     | Pause and attendant detection                          | n8n-workflows | 3          | S    | PENDING |
+| 5     | Pause and attendant detection                          | n8n-workflows | 3          | S    | DONE     |
 | 6     | Handoff block and media path                           | n8n-workflows | 5          | M    | PENDING |
 | 7     | Debounce (group messages)                              | n8n-workflows | 5          | M    | PENDING |
 | 8     | Conversation session and context                       | n8n-workflows | 7          | M    | PENDING |
@@ -313,7 +313,9 @@ Spec: 2 (filter 5), 8 row 1
 
 ### Phase 5 — Pause and attendant detection
 
-Status: PENDING
+Status: DONE
+Evidence: block 3 added to `workflows/chatbot-waha-divercity.json` (`3.1 Buscar marca de msg do bot`, `3.1 Digitada pela atendente?`, `3.1 Pausar chat`, `3.2 Mensagem do cliente`, `3.2 Buscar pausa`, `3.2 Restaurar mensagem`, `3.2 Chat pausado?`); the NoOp `3.0` is gone and both client-path inbounds to `2.3 Rotear por tipo` go through block 3.2. `jq empty workflows/*.json` passes, `active: false`, no dangling connections, secrets grep clean. Conditions and TTL (`12` → 43200 s, `0.01` → 36 s, clamped to ≥ 1) run in node with synthetic items; a throw-away Redis key in DB 1 confirmed `set … EX`, `ttl` and the empty read of a missing key. The installed `Redis.node.js` returns one item with `{propertyName: null}` for a missing key, so unpaused chats keep flowing. `code-reviewer`: APPROVED. Not done: the workflow was not run in n8n (the n8n copy differs from the repo, so it was not imported).
+Interpretations: (1) the `bot-msg:` mark is keyed by the short message id (last `_` segment of `idMensagem`, `true_<chat>_<MSGID>` → `<MSGID>`), so Phases 6 and 10 must write `bot-msg:<MSGID>` from the Send Text response `id` with the same extraction and a non-empty value; (2) the two extra nodes `3.2 Mensagem do cliente` (join point) and `3.2 Restaurar mensagem` (redundant but harmless); (3) attendant messages skip the age and allowlist filters, so they pause any chat (as the spec orders the filters). Open: the `source` value of API sends (`api`) is still unconfirmed live; the `bot-msg:` mark is the fallback.
 Role: n8n-workflows · Depends on: 3 · Covers: AC 12 (pause), 13, 6 (silence while paused) · Size: S
 Spec: 3
 

@@ -9,7 +9,7 @@ session. Phase status is updated in place in this file.
 
 | Phase | Title                                                  | Role          | Depends on | Size | Status  |
 | ----- | ------------------------------------------------------ | ------------- | ---------- | ---- | ------- |
-| 1     | Live probe: payload fields, contact signal, node types | n8n-workflows | none       | S    | IN_PROGRESS |
+| 1     | Live probe: payload fields, contact signal, node types | n8n-workflows | none       | S    | DONE |
 | 2     | Redis credential for the bot                           | node-service  | none       | S    | DONE    |
 | 3     | Workflow skeleton: config, intake, filters 1–4, types  | n8n-workflows | 1, 2       | M    | PENDING |
 | 4     | Filter 5: only numbers not in the phone's agenda       | n8n-workflows | 1, 3       | S    | PENDING |
@@ -39,6 +39,56 @@ session. Phase status is updated in place in this file.
 | Scripts / checks | No `package.json`, so no npm scripts. Checks that exist: `jq empty workflows/*.json`, the secrets grep from `project-core`, `docker compose config -q`. `scripts/setup.sh` creates credentials when missing (pattern for Phase 2) and imports workflows by id when missing. |
 | `.env` | Not readable in this session (permission). Key names from `.env.example` only. No new `.env` key needed (`REDIS_PASSWORD` already exists). |
 | Gaps vs spec | `isMyContact` missing (D3). Session name is `Default`, not `default`. No LID → phone operation in the native node (spec 2 worst case: name only, no link). No webhook HMAC configured (D5). |
+
+### Audit — Phase 1 findings (partial, 2026-10-12; sanitized, no values)
+
+Collected read-only from the stored history (249 messages, 15 chats) and the node packages. Facts 1, 3 and 4 are complete. Fact 2 (D3 condition) needs the owner's phone actions and is **open**.
+
+**Fact 1 — message payload (WAHA NOWEB 2026.9.2).**
+
+- Top-level keys: `id, timestamp, from, fromMe, source, body, hasMedia, media, ack, ackName, location, vCards, replyTo, _data`. `to` and `participant` exist on group messages only.
+- `id` = `fromMe_chatId_msgId[_participant]`. `timestamp` is **seconds** (10 digits). `fromMe` is boolean.
+- **1:1 chats arrive as `@lid`**: every private message in the sample has `from = <lid>@lid`, and for `fromMe = true` `from` is still the other party's id and `to` is null. So `chatId = from` (not `fromMe ? to : from`) for private chats. Groups: `from` = group id, `to` = group id, `participant` = sender `@lid`. Phase 3 must handle both shapes.
+- `source`: exists, only `app` observed in history (no API sends in the sample; `api` is the expected value for API sends, to be confirmed in Phase 1 step 3 with the single test send).
+- `body`: text for text messages, the caption for image/video (null when no caption), null for audio/sticker/album.
+- `_data.message` keys by type: text → `conversation` or `extendedTextMessage.text`; audio → `audioMessage` (`ptt`); image → `imageMessage` (`caption`); video → `videoMessage`; sticker → `stickerMessage`; album → `albumMessage`. No `reactionMessage`, poll or `protocolMessage` seen in history (reactions live in `_data.reactions[]`; not verified on live `message.any` events).
+- Display name: `_data.pushName` (present on about 65% of messages, so it needs a fallback). No `notifyName`.
+- Real phone for `@lid`: `_data.key.remoteJidAlt` (1:1) and `_data.key.participantAlt` (groups), populated only when `_data.key.addressingMode = "lid"` (80 messages in the sample, absent on older ones). No `senderPn`. The server also has `GET /api/{session}/lids` → `[{lid, pn}]`, but the native node has no LID operation.
+
+**Fact 2 — D3 signal (aggregate, first 2000 contacts of about 2200).**
+
+- Contact keys: `id, lid, name, phoneNumber, pushname, verifiedName` (no `isMyContact`).
+- `@c.us` (991): `name` set on 205 (22 differ from `pushname`, so it is the address-book name). `@lid` (1002): `name` set on only 10 (1%), `pushname` on 997.
+- Reading: `name` looks like the address-book name, **but the `@lid` form of a saved contact is rarely populated**. Since private chats arrive as `@lid`, a lookup by the `@lid` id will probably report "unsaved" for saved numbers (fail-open for saved contacts, which is the wrong direction). A lookup by `<remoteJidAlt phone>@c.us` may work. **Not decidable without the test numbers.**
+- Live check with the owner's saved test number (second probe, after the owner re-sent a text, audio, image and sticker):
+  - The chat shows as `@c.us` in `chats/overview` (digits = the phone), `@s.whatsapp.net` in the raw `/chats`, and every incoming message has `from = <lid>@lid`, `to = null`, `_data.key.remoteJidAlt = <phone>@s.whatsapp.net`, `source = app`, `pushName` present.
+  - Contacts → Get by `<phone>@c.us`: HTTP 200, keys `id, lid, name, phoneNumber, pushname`, `name` **non-empty**.
+  - Contacts → Get by the bare `<lid>@lid`: HTTP 200, keys `id, pushname` only, `name` **empty**. So a lookup by the `@lid` id would wrongly report a saved contact as unsaved.
+  - `GET /api/Default/lids/<lid>` resolves to a phone (`lid`, `pn`), but the native node has no LID operation, so the phone has to come from `remoteJidAlt`.
+  - Unsaved side (proxy, no real unsaved test number was used): of 991 `@c.us` contacts in the first 2000, 786 have `pushname` and empty `name`. Contacts → Get on 3 of them returned only `id` and `pushname` (no `name`, `lid` or `phoneNumber`).
+- Result: **PASS, conditional.** `name` separates saved from unsaved when the lookup uses `<phone>@c.us` (phone taken from `remoteJidAlt`). Caveats the executor must respect: (1) the unsaved side is inferred from aggregate data, not from a real unsaved test number; (2) when `remoteJidAlt` is absent, `telefone` is empty and the lookup must fail closed (ignored and logged); (3) the lookup must never use the `@lid` id.
+- Not confirmed: `source` for a message sent through the API (`api` expected). The single test send was denied by the permission layer and not retried. Phase 5's rule (`source !== 'api'` **and** no `bot-msg:` mark) already works without it, but it should be seen in the first live run. A phone-typed reply (`fromMe = true`) older than the sample has `source = app`, `from` = `@lid`, `to = null`, no `remoteJidAlt`.
+- **Consequence for the plan (chat id).** `chatId = fromMe ? to : from` does not hold for private chats, because `to` is null. Use `from` (`<lid>@lid`) as the chat key for private chats, for incoming and `fromMe` alike, so `pausa:`, `buf:` and `conv:` stay consistent. Sends can go to the same `<lid>@lid` chat id (message fetch by that id returns 200). Groups still end at `@g.us`.
+
+**Fact 3 — WAHA Trigger 2025.2.9.** Type `@devlikeapro/n8n-nodes-waha.wahaTrigger`, typeVersion `202502`. There is **no parameter to select events**; the node has one output per event and routes by `body.event`. `message.any` = output index **3** (`message` = 1, `message.reaction` = 2). Connection goes under `main[3]`. Path suffix `waha`, immediate 200.
+
+**Fact 4 — node types (n8n 2.41.7).**
+
+| Node | Type | typeVersion |
+| ---- | ---- | ----------- |
+| Redis | `n8n-nodes-base.redis` | 1 (ops: `delete, get, incr, info, keys, llen, pop, publish, push, set`; `incr`/`set` take `expire` + `ttl`, `get` takes `keyType`, `push` takes `list` + `tail`; no standalone expire) |
+| Redis Chat Memory | `@n8n/n8n-nodes-langchain.memoryRedisChat` | 1.6 |
+| AI Agent | `@n8n/n8n-nodes-langchain.agent` | 3.1 |
+| OpenAI Chat Model | `@n8n/n8n-nodes-langchain.lmChatOpenAi` | 1.3 (`model` is a resourceLocator; mode `id` takes an expression) |
+| Structured Output Parser | `@n8n/n8n-nodes-langchain.outputParserStructured` | 1.3 |
+| HTTP Request Tool | `@n8n/n8n-nodes-langchain.toolHttpRequest` | 1.1 |
+| Wait | `n8n-nodes-base.wait` | 1.1 |
+| Switch | `n8n-nodes-base.switch` | 3.4 |
+| If | `n8n-nodes-base.if` | 2.3 |
+| Filter | `n8n-nodes-base.filter` | 2.3 |
+| Set | `n8n-nodes-base.set` | 3.5 |
+| Code | `n8n-nodes-base.code` | 2 |
+| NoOp | `n8n-nodes-base.noOp` | 1 |
 
 ## Owner decisions
 
@@ -112,7 +162,8 @@ Keep parity with car-rental: native WAHA Trigger, n8n bound to `127.0.0.1`, inte
 
 ### Phase 1 — Live probe: payload fields, contact signal, node types
 
-Status: IN_PROGRESS
+Status: DONE
+Evidence: facts 1–4 recorded in "Audit — Phase 1 findings", sanitized (keys, types, counts, booleans; no values). D3 condition: **PASS, conditional** (`name` non-empty for the saved test number when looked up by `<phone>@c.us`; empty by `@lid`; unsaved side inferred from aggregate data). Gaps: no real unsaved test number, and the API-send `source` value is unconfirmed (the test send was denied). `jq empty workflows/*.json` passes; no workflow, compose or credential touched.
 Role: n8n-workflows · Depends on: none · Covers: prerequisite for AC 6, 7, 8, 9, 13 · Size: S
 Spec: 2, 2.3, 3.1, 6, 10
 

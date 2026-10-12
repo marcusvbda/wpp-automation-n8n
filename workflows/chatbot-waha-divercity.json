@@ -1121,7 +1121,7 @@
     {
       "parameters": {
         "content": "## 7 Resposta, encerramento e handoff — envia, encerra a conversa ou pausa e chama a equipe\nEnvia a resposta ao cliente, pausa o chat por PAUSA_HORAS, limpa conversa e buffer e avisa o grupo de atendimento.",
-        "height": 420,
+        "height": 700,
         "width": 2300,
         "color": 7
       },
@@ -2291,6 +2291,172 @@
         1610
       ],
       "id": "7eed1dd6-5cf2-468e-bfc9-316eeb191a8f"
+    },
+    {
+      "parameters": {
+        "operation": "Stop Typing",
+        "session": "={{ $('CONFIG').first().json.WAHA_SESSION }}",
+        "chatId": "={{ $('5.3 Contexto pronto').first().json.chatId }}",
+        "resource": "Chatting",
+        "requestOptions": {}
+      },
+      "id": "a879b764-810c-46c2-b4c3-bac2e32b0372",
+      "name": "7.1 Parar digitação",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        2400,
+        1700
+      ],
+      "credentials": {
+        "wahaApi": {
+          "id": "fLb4y6X1sdRn0lC8",
+          "name": "WAHA account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "Send Text",
+        "session": "={{ $('CONFIG').first().json.WAHA_SESSION }}",
+        "chatId": "={{ $('5.3 Contexto pronto').first().json.chatId }}",
+        "reply_to": "",
+        "text": "={{ $('7.0 Rotear por status').first().json.output.resposta }}",
+        "resource": "Chatting",
+        "requestOptions": {}
+      },
+      "id": "6d86761f-e194-4a1e-97e0-cabee3e04cbd",
+      "name": "7.1 Enviar resposta",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        2620,
+        1700
+      ],
+      "credentials": {
+        "wahaApi": {
+          "id": "fLb4y6X1sdRn0lC8",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "={{ 'bot-msg:' + String((() => { const r = $json.id; return typeof r === 'string' ? r : (r?._serialized ?? r?.id ?? ''); })()).split('_').pop() }}",
+        "value": "1",
+        "keyType": "string",
+        "expire": true,
+        "ttl": 120
+      },
+      "id": "ed1c624a-14f6-4f00-ab92-0bddc00d3155",
+      "name": "7.1 Registrar msg do bot",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        2840,
+        1700
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "Stop Typing",
+        "session": "={{ $('CONFIG').first().json.WAHA_SESSION }}",
+        "chatId": "={{ $('5.3 Contexto pronto').first().json.chatId }}",
+        "resource": "Chatting",
+        "requestOptions": {}
+      },
+      "id": "64bfa191-ff31-4240-9960-a61ee326f16e",
+      "name": "7.2 Parar digitação",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        2400,
+        1820
+      ],
+      "credentials": {
+        "wahaApi": {
+          "id": "fLb4y6X1sdRn0lC8",
+          "name": "WAHA account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "Send Text",
+        "session": "={{ $('CONFIG').first().json.WAHA_SESSION }}",
+        "chatId": "={{ $('5.3 Contexto pronto').first().json.chatId }}",
+        "reply_to": "",
+        "text": "={{ $('7.0 Rotear por status').first().json.output.resposta }}",
+        "resource": "Chatting",
+        "requestOptions": {}
+      },
+      "id": "99a31786-edbc-4518-999a-fa648fe347ab",
+      "name": "7.2 Enviar despedida",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        2620,
+        1820
+      ],
+      "credentials": {
+        "wahaApi": {
+          "id": "fLb4y6X1sdRn0lC8",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "={{ 'bot-msg:' + String((() => { const r = $json.id; return typeof r === 'string' ? r : (r?._serialized ?? r?.id ?? ''); })()).split('_').pop() }}",
+        "value": "1",
+        "keyType": "string",
+        "expire": true,
+        "ttl": 120
+      },
+      "id": "84f4ee7d-5b96-435d-b0ab-fd60ee5aeb92",
+      "name": "7.2 Registrar msg do bot",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        2840,
+        1820
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "={{ 'conv:' + $('5.3 Contexto pronto').first().json.chatId }}"
+      },
+      "id": "b9953429-017d-44a9-b552-8876da6e0b76",
+      "name": "7.2 Encerrar conversa",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        3060,
+        1820
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
     }
   ],
   "connections": {
@@ -3067,6 +3233,83 @@
           {
             "node": "6.1 Responder cliente",
             "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.1 Resposta pronta": {
+      "main": [
+        [
+          {
+            "node": "7.1 Parar digitação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.1 Parar digitação": {
+      "main": [
+        [
+          {
+            "node": "7.1 Enviar resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.1 Enviar resposta": {
+      "main": [
+        [
+          {
+            "node": "7.1 Registrar msg do bot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.2 Encerramento pronto": {
+      "main": [
+        [
+          {
+            "node": "7.2 Parar digitação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.2 Parar digitação": {
+      "main": [
+        [
+          {
+            "node": "7.2 Enviar despedida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.2 Enviar despedida": {
+      "main": [
+        [
+          {
+            "node": "7.2 Registrar msg do bot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.2 Registrar msg do bot": {
+      "main": [
+        [
+          {
+            "node": "7.2 Encerrar conversa",
+            "type": "main",
             "index": 0
           }
         ]

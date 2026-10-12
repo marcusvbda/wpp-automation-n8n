@@ -18,7 +18,7 @@ session. Phase status is updated in place in this file.
 | 7     | Debounce (group messages)                              | n8n-workflows | 5          | M    | DONE     |
 | 8     | Conversation session and context                       | n8n-workflows | 7          | M    | DONE     |
 | 9     | Agent, tools, status routing to handoff                | n8n-workflows | 6, 8       | M    | DONE    |
-| 10    | Reply and close paths (`continua`, `resolvido`)        | n8n-workflows | 9          | S    | PENDING |
+| 10    | Reply and close paths (`continua`, `resolvido`)        | n8n-workflows | 9          | S    | DONE    |
 | 11    | Hook routing, import and publish in test mode          | n8n-workflows | 2–10       | S    | PENDING |
 | 12    | Verification and report                                | n8n-workflows | 1–11       | M    | PENDING |
 
@@ -506,7 +506,10 @@ Spec: 6, 7 (routing), 0.5
 
 ### Phase 10 — Reply and close paths (`continua`, `resolvido`)
 
-Status: PENDING
+Status: DONE
+Evidence: 7 nodes added in block 7 (`7.1 Parar digitação`, `7.1 Enviar resposta`, `7.1 Registrar msg do bot`, `7.2 Parar digitação`, `7.2 Enviar despedida`, `7.2 Registrar msg do bot`, `7.2 Encerrar conversa`) and wired from the `7.1`/`7.2` entry nodes; sticky 7 height 420 → 700 to enclose them. `jq empty workflows/*.json` passes, `active: false`, 83 nodes with unique names, no dangling connections, every node inside a sticky, no sticky overlap, no path from `7.2` to any `pausa:` write or `7.3 *` node, secrets grep clean. The `bot-msg:` key written here equals the key looked up by `3.1 Buscar marca de msg do bot` (last `_` segment of the id). `code-reviewer`: APPROVED. Not done: no live run (checked live in Phase 11/12).
+Interpretations: `bot-msg:` is written on every bot send (spec 7 lists it only under `continua`); the entry NoOps `7.1 Resposta pronta` / `7.2 Encerramento pronto` stay as entry points (the only remaining NoOps are those, `3.2 Mensagem do cliente`, `4.6 Texto pronto`, `5.3 Contexto pronto`, all deliberate join/entry points); text and chatId come from `$('7.0 Rotear por status')` and `$('5.3 Contexto pronto')`.
+Non-blocking: a failed Send Text on `7.1`/`7.2` goes to the error workflow with no dedicated path (same as `7.3`); the sticky 7 text does not mention the reply and close paths.
 Role: n8n-workflows · Depends on: 9 · Covers: AC 10, 13 · Size: S
 Spec: 5.1 ("dúvidas resolvidas"), 7 (`continua`, `resolvido`)
 

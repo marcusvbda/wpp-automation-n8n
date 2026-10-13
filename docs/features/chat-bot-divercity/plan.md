@@ -17,7 +17,7 @@ ACs 18–21 rewritten, 26–32 new). Everything else stays untouched.
 | ----- | ------------------------------------------------------------------- | ------------- | ---------- | ---- | ------- |
 | 1     | Installer defaults: new persona closing rules + two new columns     | n8n-workflows | none       | S    | DONE |
 | 2     | Agent parser passes `aguarda_cliente`                               | n8n-workflows | none       | S    | DONE |
-| 3     | New subworkflow `[chatbot] Divercity - Confirmação`                 | n8n-workflows | none       | S    | IN_PROGRESS |
+| 3     | New subworkflow `[chatbot] Divercity - Confirmação`                 | n8n-workflows | none       | S    | DONE |
 | 4     | Wire the timer: start after `continua`, cancel on customer message  | n8n-workflows | 2, 3       | S    | PENDING |
 | 5     | Deploy the workflow changes to the live n8n (feature still inert)   | n8n-workflows | 2, 3, 4    | S    | PENDING |
 | 6     | Live Data Tables: add columns, set values, new persona (feature on) | n8n-workflows | 1, 5       | S    | PENDING |
@@ -191,7 +191,8 @@ Spec: 5.1 rule 2, 6 (`aguarda_cliente`)
 
 ### Phase 3 — New subworkflow `[chatbot] Divercity - Confirmação`
 
-Status: IN_PROGRESS
+Status: DONE
+Evidence: 2026-10-13. New `workflows/chatbot-waha-divercity-confirm.json`, workflow id `cF9mQ2xT7vLp4Wd8`, inactive, 14 nodes (`Receber da resposta` → `CONFIG` → `INSTRUCOES` → `8.0` → `8.1 Esperar silêncio` → three `8.2` gets → `8.2 Ainda pode perguntar?` → `8.3 Consumir confirmação` → `8.3 Enviar confirmação` (error output → `8.3 Log falha no envio`) → `8.3 Registrar msg do bot` → `8.4 Gravar na memória`). Memory format taken from n8n 2.41.7's bundled `@langchain/redis` 1.0.1 / `@langchain/core` 1.2.8 source (`lPush(JSON.stringify(message.toDict()))`, `toDict() = {type, data: toJSON().kwargs}`, read with `lRange(0,-1).reverse()`), because no live memory key existed (Redis db 1 had been flushed); confirm against a live list in Phase 7. `jq empty workflows/*.json` OK; `docker compose config -q` OK; n8n-mcp `validate_workflow` 0 errors, 0 warnings. code-reviewer: APPROVED.
 Role: n8n-workflows · Depends on: none · Covers: AC 19–21, 26, 27, 29–32 (send side) · Size: S
 Spec: 5.1 rules 3, 5, 6, 10, 13; 7 (`continua`)
 

@@ -1,0 +1,481 @@
+{
+  "id": "cF9mQ2xT7vLp4Wd8",
+  "name": "[chatbot] Divercity - Confirmação",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "8456e3ce-a2bb-4b20-b3ad-78fdafcba525",
+      "name": "Receber da resposta",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -64,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ $json.CONFIG }}",
+        "options": {}
+      },
+      "id": "05b7e375-a3c4-4faf-bd9c-a3a080f06859",
+      "name": "CONFIG",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        160,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ $('Receber da resposta').first().json.INSTRUCOES }}",
+        "options": {}
+      },
+      "id": "e8c1e437-a478-4a21-98db-a2fe973491ec",
+      "name": "INSTRUCOES",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        384,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ Object.fromEntries(Object.entries($('Receber da resposta').first().json).filter((e) => e[0] !== 'CONFIG' && e[0] !== 'INSTRUCOES')) }}",
+        "options": {}
+      },
+      "id": "32fd2ac2-1723-4f18-a051-8f240f2a98ab",
+      "name": "8.0 Dados recebidos",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        608,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "resume": "timeInterval",
+        "amount": "={{ Math.max(1, Math.round(Number($('CONFIG').first().json.CONFIRMACAO_MINUTOS) * 60)) }}",
+        "unit": "seconds"
+      },
+      "id": "54353d7a-d853-4f96-944d-9326c4a8a1be",
+      "name": "8.1 Esperar silêncio",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        832,
+        176
+      ],
+      "webhookId": "ab49a77a-fb77-4b42-aab6-6fbc7869e8ac"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "propertyName": "confirmacao",
+        "key": "={{ 'confirmar:' + $('8.0 Dados recebidos').first().json.chatId }}",
+        "keyType": "string",
+        "options": {}
+      },
+      "id": "ea943329-d44b-4da1-a3b9-e09e64366426",
+      "name": "8.2 Buscar confirmação",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1056,
+        176
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "propertyName": "pausa",
+        "key": "={{ 'pausa:' + $('8.0 Dados recebidos').first().json.chatId }}",
+        "keyType": "string",
+        "options": {}
+      },
+      "id": "4fedebac-5ce7-4ed0-ae52-6db44c9e9ed9",
+      "name": "8.2 Buscar pausa",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1280,
+        176
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "propertyName": "conversaId",
+        "key": "={{ 'conv:' + $('8.0 Dados recebidos').first().json.chatId }}",
+        "keyType": "string",
+        "options": {}
+      },
+      "id": "4ed36e6c-d18a-494c-b378-6864e1f8c4eb",
+      "name": "8.2 Buscar conversa",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1504,
+        176
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a707b864-803d-42f2-ae56-e8226c16e088",
+              "leftValue": "={{ $('8.2 Buscar confirmação').first().json.confirmacao === $('8.0 Dados recebidos').first().json.token }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "900f3a51-8b88-4adb-a585-c2b6410c4a5e",
+              "leftValue": "={{ !$('8.2 Buscar pausa').first().json.pausa }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "d840ef28-4616-4625-bf30-e84709c47ea8",
+              "leftValue": "={{ String($('8.2 Buscar conversa').first().json.conversaId ?? '').trim() !== '' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "d7ce76ab-295c-486f-8f1a-c7eda3645b9e",
+              "leftValue": "={{ String($('INSTRUCOES').first().json.MSG_CONFIRMACAO ?? '').trim() !== '' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b8256125-68a2-477f-95a1-d4102db7164e",
+      "name": "8.2 Ainda pode perguntar?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1728,
+        176
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "={{ 'confirmar:' + $('8.0 Dados recebidos').first().json.chatId }}"
+      },
+      "id": "dc3e5b2a-e087-4d98-bcf7-c55d059a9934",
+      "name": "8.3 Consumir confirmação",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1952,
+        176
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Send Text",
+        "session": "={{ $('CONFIG').first().json.WAHA_SESSION }}",
+        "chatId": "={{ $('8.0 Dados recebidos').first().json.chatId }}",
+        "text": "={{ $('INSTRUCOES').first().json.MSG_CONFIRMACAO }}",
+        "requestOptions": {}
+      },
+      "id": "479b2055-ff0d-47ed-8693-6a3a7b7661f0",
+      "name": "8.3 Enviar confirmação",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        2176,
+        176
+      ],
+      "credentials": {
+        "wahaApi": {
+          "id": "fLb4y6X1sdRn0lC8",
+          "name": "WAHA account"
+        }
+      },
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "={{ 'bot-msg:' + String((() => { const r = $json.id; return typeof r === 'string' ? r : (r?._serialized ?? r?.id ?? ''); })()).split('_').pop() }}",
+        "value": "1",
+        "keyType": "string",
+        "expire": true,
+        "ttl": 120
+      },
+      "id": "3b844f68-beb7-444f-aeaa-f6953b9b28c7",
+      "name": "8.3 Registrar msg do bot",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        2400,
+        176
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "push",
+        "list": "={{ $('8.0 Dados recebidos').first().json.chatId + ':' + String($('8.2 Buscar conversa').first().json.conversaId).trim() }}",
+        "messageData": "={{ JSON.stringify({ type: 'ai', data: { content: JSON.stringify({ resposta: $('INSTRUCOES').first().json.MSG_CONFIRMACAO, status: 'continua', aguarda_cliente: true, motivo: '', resumo: [] }), additional_kwargs: {}, response_metadata: {}, tool_calls: [], invalid_tool_calls: [] } }) }}",
+        "tail": false
+      },
+      "id": "af62e96c-8637-4004-8874-feedeb01952f",
+      "name": "8.4 Gravar na memória",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        2624,
+        176
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "99a0926b-b9af-41c4-b065-3e89f87df0b5",
+              "name": "chatId",
+              "value": "={{ $('8.0 Dados recebidos').first().json.chatId }}",
+              "type": "string"
+            },
+            {
+              "id": "75215a80-4ddf-49d1-8f21-a88f51f8e5f1",
+              "name": "erro",
+              "value": "={{ $json.error?.message ?? $json.error ?? 'erro desconhecido' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "770b6a24-c2b0-447e-9954-fd9225ee8106",
+      "name": "8.3 Log falha no envio",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        2400,
+        368
+      ]
+    }
+  ],
+  "connections": {
+    "Receber da resposta": {
+      "main": [
+        [
+          {
+            "node": "CONFIG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CONFIG": {
+      "main": [
+        [
+          {
+            "node": "INSTRUCOES",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INSTRUCOES": {
+      "main": [
+        [
+          {
+            "node": "8.0 Dados recebidos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "8.0 Dados recebidos": {
+      "main": [
+        [
+          {
+            "node": "8.1 Esperar silêncio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "8.1 Esperar silêncio": {
+      "main": [
+        [
+          {
+            "node": "8.2 Buscar confirmação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "8.2 Buscar confirmação": {
+      "main": [
+        [
+          {
+            "node": "8.2 Buscar pausa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "8.2 Buscar pausa": {
+      "main": [
+        [
+          {
+            "node": "8.2 Buscar conversa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "8.2 Buscar conversa": {
+      "main": [
+        [
+          {
+            "node": "8.2 Ainda pode perguntar?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "8.2 Ainda pode perguntar?": {
+      "main": [
+        [
+          {
+            "node": "8.3 Consumir confirmação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "8.3 Consumir confirmação": {
+      "main": [
+        [
+          {
+            "node": "8.3 Enviar confirmação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "8.3 Registrar msg do bot": {
+      "main": [
+        [
+          {
+            "node": "8.4 Gravar na memória",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "8.3 Enviar confirmação": {
+      "main": [
+        [
+          {
+            "node": "8.3 Registrar msg do bot",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "8.3 Log falha no envio",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "FF0x666oa1bfHLDI",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  }
+}

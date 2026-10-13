@@ -19,8 +19,8 @@ ACs 18–21 rewritten, 26–32 new). Everything else stays untouched.
 | 2     | Agent parser passes `aguarda_cliente`                               | n8n-workflows | none       | S    | DONE |
 | 3     | New subworkflow `[chatbot] Divercity - Confirmação`                 | n8n-workflows | none       | S    | DONE |
 | 4     | Wire the timer: start after `continua`, cancel on customer message  | n8n-workflows | 2, 3       | S    | DONE |
-| 5     | Deploy the workflow changes to the live n8n (feature still inert)   | n8n-workflows | 2, 3, 4    | S    | PENDING |
-| 6     | Live Data Tables: add columns, set values, new persona (feature on) | n8n-workflows | 1, 5       | S    | PENDING |
+| 5     | Deploy the workflow changes to the live n8n (feature still inert)   | n8n-workflows | 2, 3, 4    | S    | DONE |
+| 6     | Live Data Tables: add columns, set values, new persona (feature on) | n8n-workflows | 1, 5       | S    | IN_PROGRESS |
 | 7     | Verification and report                                             | n8n-workflows | 1–6        | S    | PENDING |
 
 ## Audit — 2026-10-13
@@ -281,7 +281,8 @@ confirmation sub without waiting; any new customer text cancels it.
 
 ### Phase 5 — Deploy the workflow changes to the live n8n (feature still inert)
 
-Status: PENDING
+Status: DONE
+Evidence: 2026-10-13, owner approved the deployment in-session (D1 = A). Pre-check: live draft and published graphs of agent, debounce and reply were identical to `2bb5b97` (no editor changes). Confirm sub imported with `n8n import:workflow --input=/workflows/chatbot-waha-divercity-confirm.json` (single file, id `cF9mQ2xT7vLp4Wd8` kept) and published with n8n-mcp `activateWorkflow`. Agent, debounce, reply updated with n8n-mcp `n8n_update_partial_workflow` (validateOnly first); each update published itself, no container restart. Correction to this phase's contract: n8n 2.41.7 refuses to publish a workflow whose Execute Workflow node points to an unpublished sub, so the confirm sub **must** be published (the first reply update was rejected and rolled back automatically, then succeeded after publishing the sub). Orchestrator check: the published graph (`workflow_history` at `activeVersionId`) of all six chatbot workflows (main, filters, debounce, agent, reply, confirm) equals the repo HEAD on nodes and connections (the only difference is a trailing empty false-output array in the reply's `7.1 Agendar confirmação?` connection, which n8n drops). All six active. Main and filters untouched. The live smoke (a normal test message gets a normal reply) needs the owner's phone and is done in Phase 7.
 Role: n8n-workflows · Depends on: 2, 3, 4 · Covers: AC 26, 32 (makes them testable) · Size: S
 Spec: 11 (structure deviation)
 

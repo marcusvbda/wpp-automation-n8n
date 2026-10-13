@@ -231,15 +231,8 @@
       "parameters": {
         "toolDescription": "Lista os preços de passaporte (criança e acompanhante, por duração). weekdayPrice = segunda a quinta; weekendPrice = sexta a domingo e feriados. Linhas com key terminando em `_child` = criança, `_companion` = acompanhante.",
         "url": "={{ $('CONFIG').first().json.API_BASE_URL }}{{ $('CONFIG').first().json.PATH_PRECOS }}?type=passaportes&perPage=100",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "=Bearer {{ $('CONFIG').first().json.SITE_API_TOKEN }}"
-            }
-          ]
-        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "options": {
           "response": {
             "response": {
@@ -256,21 +249,20 @@
         408
       ],
       "id": "0aacbef3-c22f-4c7e-8ebe-e149d996fb18",
-      "onError": "continueRegularOutput"
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "iISSUrB21uA7tonr",
+          "name": "Site API token"
+        }
+      }
     },
     {
       "parameters": {
         "toolDescription": "Lista os horários de funcionamento. Use a chave (key): weekdays = segunda a sábado; sundays_holidays = domingos e feriados. Nunca decida pelo label.",
         "url": "={{ $('CONFIG').first().json.API_BASE_URL }}{{ $('CONFIG').first().json.PATH_HORARIOS }}?perPage=100",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Authorization",
-              "value": "=Bearer {{ $('CONFIG').first().json.SITE_API_TOKEN }}"
-            }
-          ]
-        },
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
         "options": {
           "response": {
             "response": {
@@ -287,7 +279,13 @@
         408
       ],
       "id": "547a932e-3a23-4d50-bfa8-9695241b7828",
-      "onError": "continueRegularOutput"
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "iISSUrB21uA7tonr",
+          "name": "Site API token"
+        }
+      }
     },
     {
       "parameters": {

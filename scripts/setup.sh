@@ -13,6 +13,9 @@ CRED_POSTGRES_ID=qBw06fsYVSnHDIYZ
 CRED_WAHA_ID=fLb4y6X1sdRn0lC8
 CRED_OPENAI_ID=KFZp3oDrOgr20VBL
 CRED_REDIS_ID=rD7k2Mx9QpL4vWn3
+CRED_SITE_API_ID=iISSUrB21uA7tonr
+# Installer workflow of the Divercity data tables (workflows/chatbot-waha-divercity-install.json)
+DIVERCITY_INSTALLER_ID=95TKiRbbJEt5mYLg
 
 command -v docker >/dev/null || { echo "docker is required" >&2; exit 1; }
 docker compose version >/dev/null || { echo "docker compose v2 is required" >&2; exit 1; }
@@ -63,6 +66,7 @@ grep -qE '^N8N_API_KEY=' .env || echo 'N8N_API_KEY=' >>.env
 grep -qE '^N8N_LICENSE_ACTIVATION_KEY=' .env || echo 'N8N_LICENSE_ACTIVATION_KEY=' >>.env
 grep -qE '^OPENAI_API_KEY=' .env || echo 'OPENAI_API_KEY=' >>.env
 grep -qE '^TEST_CHAT_IDS=' .env || echo 'TEST_CHAT_IDS=' >>.env
+grep -qE '^SITE_API_TOKEN=' .env || echo 'SITE_API_TOKEN=' >>.env
 
 env_get() { grep -E "^$1=" .env | tail -n1 | cut -d= -f2-; }
 
@@ -112,6 +116,10 @@ openai_key=$(env_get OPENAI_API_KEY)
 if ! exists credentials_entity "$CRED_OPENAI_ID" && [ -n "$openai_key" ]; then
   add_cred "{\"id\":\"$CRED_OPENAI_ID\",\"name\":\"OpenAI account\",\"type\":\"openAiApi\",\"data\":{\"apiKey\":\"$openai_key\"}}"
 fi
+# Divercity site API token (Authorization header); empty .env value leaves a placeholder to replace in the n8n UI
+site_api_token=$(env_get SITE_API_TOKEN)
+exists credentials_entity "$CRED_SITE_API_ID" ||
+  add_cred "{\"id\":\"$CRED_SITE_API_ID\",\"name\":\"Site API token\",\"type\":\"httpHeaderAuth\",\"data\":{\"name\":\"Authorization\",\"value\":\"Bearer ${site_api_token:-COLE_O_TOKEN_AQUI}\"}}"
 if [ -n "$creds" ]; then
   printf '[%s]\n' "$creds" | docker compose exec -T n8n sh -c \
     'cat >/tmp/creds.json && n8n import:credentials --input=/tmp/creds.json; status=$?; rm -f /tmp/creds.json; exit $status' ||
@@ -133,6 +141,15 @@ for f in workflows/*.json; do
 done
 if [ -n "$imported" ]; then
   if docker compose exec -T n8n n8n import:workflow --separate --input=/tmp/wf; then
+    # Divercity data tables (config + instructions): the installer is idempotent and never
+    # overwrites existing rows. The CLI "execute" does not load the data-table module on some
+    # n8n versions, so a failure here is a warning, not an abort.
+    case "$imported" in
+      *"$DIVERCITY_INSTALLER_ID"*)
+        docker compose exec -T n8n n8n execute --id="$DIVERCITY_INSTALLER_ID" >/dev/null ||
+          echo "warning: could not run the Divercity table installer from the CLI; open '[chatbot] Divercity - Instalar tabelas' in the n8n editor and click Execute workflow once" >&2
+        ;;
+    esac
     case "$imported" in
       *"$CHATBOT_WORKFLOW_ID"*)
         docker compose exec -T n8n n8n publish:workflow --id="$CHATBOT_WORKFLOW_ID"

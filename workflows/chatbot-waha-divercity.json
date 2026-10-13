@@ -17,130 +17,24 @@
     },
     {
       "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "de8fc5d2-fba6-4b75-bf8a-d98fd4317058",
-              "name": "API_BASE_URL",
-              "value": "https://www.divercitypark.com.br/api/v1",
-              "type": "string"
-            },
-            {
-              "id": "d67e16ca-fa5d-4c5a-9460-dcebfd4db93d",
-              "name": "SITE_API_TOKEN",
-              "value": "COLE_O_TOKEN_AQUI",
-              "type": "string"
-            },
-            {
-              "id": "fbcc43f3-1af4-4f4d-a870-d27c1a339796",
-              "name": "PATH_PRECOS",
-              "value": "/content/prices",
-              "type": "string"
-            },
-            {
-              "id": "cdb1a343-201d-41a6-8553-e30ac3f8e379",
-              "name": "PATH_HORARIOS",
-              "value": "/content/hours",
-              "type": "string"
-            },
-            {
-              "id": "2d0bb659-5446-4b88-ba68-41fd3c81f566",
-              "name": "WAHA_SESSION",
-              "value": "Default",
-              "type": "string"
-            },
-            {
-              "id": "29e31192-100d-457c-ac43-b4ccae011526",
-              "name": "GRUPO_ATENDIMENTO_ID",
-              "value": "",
-              "type": "string"
-            },
-            {
-              "id": "870d6ca3-0744-4603-b1af-b3f7f54b7085",
-              "name": "INCLUIR_LINK_WA",
-              "value": true,
-              "type": "boolean"
-            },
-            {
-              "id": "e1984f8f-7e1d-46e0-aff3-7cd6c5f3eef2",
-              "name": "MODO_TESTE",
-              "value": true,
-              "type": "boolean"
-            },
-            {
-              "id": "9acda8e5-e932-4a8e-bdf9-b6d6b110b643",
-              "name": "ALLOWLIST",
-              "value": "",
-              "type": "string"
-            },
-            {
-              "id": "c2093b0f-ae19-48f0-937c-df0b946ca63c",
-              "name": "CONTATOS_IGNORADOS",
-              "value": "",
-              "type": "string"
-            },
-            {
-              "id": "529639cf-97b5-404d-bdc7-743139cf76ee",
-              "name": "OPENAI_MODEL",
-              "value": "gpt-4o-mini",
-              "type": "string"
-            },
-            {
-              "id": "e24435f3-5774-4267-b92f-17c73d471ffc",
-              "name": "TEMPERATURA",
-              "value": 0.2,
-              "type": "number"
-            },
-            {
-              "id": "fc34577a-6d08-4e2f-8ad1-7de8ea4eb932",
-              "name": "DEBOUNCE_SEGUNDOS",
-              "value": 5,
-              "type": "number"
-            },
-            {
-              "id": "38d215c3-5f2c-4c55-9c69-eb370e3b439a",
-              "name": "MEMORIA_TTL_HORAS",
-              "value": 6,
-              "type": "number"
-            },
-            {
-              "id": "712403b2-85ad-4c81-a2e7-ea588968427b",
-              "name": "MEMORIA_MENSAGENS",
-              "value": 10,
-              "type": "number"
-            },
-            {
-              "id": "3c38902f-16fe-4bfc-ad00-a543531488a8",
-              "name": "PAUSA_HORAS",
-              "value": 12,
-              "type": "number"
-            },
-            {
-              "id": "24c6e534-a7f7-4c79-85b3-c44d5e23de58",
-              "name": "MAX_IDADE_MSG_SEGUNDOS",
-              "value": 300,
-              "type": "number"
-            },
-            {
-              "id": "56a95adf-648b-4db2-9d3e-8dc23026b96a",
-              "name": "TIMEZONE",
-              "value": "America/Sao_Paulo",
-              "type": "string"
-            },
-            {
-              "id": "86667cca-25c1-40c7-9217-86655623182f",
-              "name": "DIAS_CALENDARIO",
-              "value": 21,
-              "type": "number"
-            }
-          ]
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "chatbot_divercity_config"
         },
-        "options": {}
+        "matchType": "anyCondition",
+        "returnAll": false,
+        "limit": 1,
+        "orderBy": true,
+        "orderByColumn": "createdAt",
+        "orderByDirection": "ASC"
       },
       "id": "1825b46b-2a19-46ad-8048-9b7343ce8948",
       "name": "CONFIG",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.5,
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
       "position": [
         32,
         496
@@ -148,52 +42,24 @@
     },
     {
       "parameters": {
-        "assignments": {
-          "assignments": [
-            {
-              "id": "d5a47e4d-8565-4002-b926-63966fb0fb7e",
-              "name": "PERSONA_E_REGRAS",
-              "value": "Você é o Dry, assistente virtual do Divercity Park, atendendo clientes pelo WhatsApp.\nFale em português do Brasil, de forma simpática, natural e direta (1 a 4 linhas por mensagem,\nno máximo um emoji). Se não houver mensagens anteriores na memória, apresente-se como\nassistente virtual.\n\nCOMO CONVERSAR\n- Converse de verdade. Responda cumprimentos e conversa solta (\"oi\", \"bom dia\", \"tudo bem?\")\n  com simpatia e pergunte como pode ajudar. Não encaminhe para a atendente só porque o\n  cliente ainda não disse o que quer.\n- Se a mensagem for vaga, faça uma pergunta curta para entender o que o cliente precisa\n  (preço, horário, dia da visita...).\n- Mantenha o fio da conversa usando as mensagens anteriores.\n\nO QUE VOCÊ FAZ\n- Informar preço de passaporte (entrada), horário de funcionamento e o que estiver em\n  \"FATOS DO PARQUE\" ou \"AVISOS DE HOJE\".\n- Só encaminhe para a atendente (status \"humano\") quando você não souber responder com as\n  informações que tem, ou nos casos da regra 4.\n\nREGRAS\n1. Nunca invente preço, horário, regra ou desconto. Use só o que vier das ferramentas,\n   de \"FATOS DO PARQUE\" ou de \"AVISOS DE HOJE\". Se o aviso contradiz outra informação, o aviso vale.\n2. Preço e horário: sempre consulte a ferramenta antes de responder. Não reaproveite valores\n   de mensagens anteriores.\n3. Se a ferramenta falhar ou vier vazia, ou você não tiver certeza da informação: status \"humano\".\n4. Festa, aniversário, orçamento, reserva do salão, data, disponibilidade, pagamento,\n   reclamação ou pedido para falar com uma pessoa: status \"humano\". Não informe preço de festa.\n5. Nunca prometa nada em nome do parque (desconto, reserva, exceção).\n\nPASSAPORTE\n- Tem preço de criança e de acompanhante, por duração (30 min, 1 h, 2 h, 3 h).\n- O preço depende do dia: use o CALENDÁRIO abaixo para saber qual preço vale na data.\n  Se o cliente não disse o dia da visita, pergunte antes de informar um valor.\n- Escreva valores como R$ 45,00. Informe só as durações que o cliente pediu; se não pediu\n  nenhuma, ofereça as opções.\n\nHORÁRIO\n- Use a faixa do dia indicada no CALENDÁRIO e o horário da ferramenta.\n- Para \"estão abertos agora?\", compare a hora atual (horário de Brasília) com a faixa de hoje.\n\nSTATUS E FORMATO DE SAÍDA\n- Responda SEMPRE e SOMENTE com um objeto JSON, sem texto fora dele e sem bloco de código:\n  {\"resposta\": \"...\", \"status\": \"continua\", \"motivo\": \"...\", \"resumo\": [\"...\"]}\n- \"continua\": você respondeu ou fez uma pergunta e a conversa segue. Vale para cumprimentos e\n  para respostas de preço ou horário (o cliente pode ter mais dúvidas).\n- \"resolvido\": somente quando o cliente encerrar de forma explícita (agradeceu e disse que era\n  só isso, \"tchau\", \"valeu\"). Despeça-se em uma linha (\"Qualquer dúvida é só chamar!\").\n  Nunca use \"resolvido\" logo depois de informar preço ou horário sem o cliente encerrar.\n- \"humano\": precisa de atendente. \"resposta\" avisa o cliente que uma atendente vai\n  continuar a conversa; \"motivo\" é curto; \"resumo\" tem até 3 linhas com o que o cliente\n  perguntou e onde parou.",
-              "type": "string"
-            },
-            {
-              "id": "66e9b520-9ccc-4957-899b-e0447e160d1d",
-              "name": "FATOS_DO_PARQUE",
-              "value": "Endereço: [PREENCHER]\nRegras de entrada: [PREENCHER]\nPolítica de acompanhante: [PREENCHER]\nDescontos: [PREENCHER]\nEstacionamento: [PREENCHER]",
-              "type": "string"
-            },
-            {
-              "id": "bc4447c4-fadb-403a-a75a-75363cd22d52",
-              "name": "AVISOS_DE_HOJE",
-              "value": "",
-              "type": "string"
-            },
-            {
-              "id": "97e9e873-af10-402d-a1d3-37350346d3f8",
-              "name": "FERIADOS",
-              "value": "2026-10-12,2026-11-02,2026-11-15,2026-11-20,2026-12-25,2027-01-01",
-              "type": "string"
-            },
-            {
-              "id": "5916b781-f156-4955-80b5-d4ba7e136bc8",
-              "name": "MSG_HANDOFF_CLIENTE",
-              "value": "Vou chamar uma das nossas atendentes pra te ajudar com isso. Ela te responde por aqui em breve.",
-              "type": "string"
-            },
-            {
-              "id": "2de3261f-2659-4855-a759-660309532fbe",
-              "name": "MSG_MIDIA",
-              "value": "Por enquanto eu só consigo ler mensagens de texto. Vou chamar uma atendente pra te ajudar.",
-              "type": "string"
-            }
-          ]
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "chatbot_divercity_instrucoes"
         },
-        "options": {}
+        "matchType": "anyCondition",
+        "returnAll": false,
+        "limit": 1,
+        "orderBy": true,
+        "orderByColumn": "createdAt",
+        "orderByDirection": "ASC"
       },
       "id": "619bfc42-0831-4a85-9d74-5eadbe84f8e6",
       "name": "INSTRUCOES",
-      "type": "n8n-nodes-base.set",
-      "typeVersion": 3.5,
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
       "position": [
         256,
         496

@@ -1,0 +1,699 @@
+{
+  "id": "95TKiRbbJEt5mYLg",
+  "name": "[chatbot] Divercity - Instalar tabelas",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "91a2cb3c-1d59-4f92-9b7c-b3e9c25c0b5e",
+      "name": "Iniciar instalação",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "chatbot_divercity_config",
+        "columns": {
+          "column": [
+            {
+              "name": "API_BASE_URL",
+              "type": "string"
+            },
+            {
+              "name": "PATH_PRECOS",
+              "type": "string"
+            },
+            {
+              "name": "PATH_HORARIOS",
+              "type": "string"
+            },
+            {
+              "name": "WAHA_SESSION",
+              "type": "string"
+            },
+            {
+              "name": "GRUPO_ATENDIMENTO_ID",
+              "type": "string"
+            },
+            {
+              "name": "INCLUIR_LINK_WA",
+              "type": "boolean"
+            },
+            {
+              "name": "MODO_TESTE",
+              "type": "boolean"
+            },
+            {
+              "name": "ALLOWLIST",
+              "type": "string"
+            },
+            {
+              "name": "CONTATOS_IGNORADOS",
+              "type": "string"
+            },
+            {
+              "name": "OPENAI_MODEL",
+              "type": "string"
+            },
+            {
+              "name": "TEMPERATURA",
+              "type": "number"
+            },
+            {
+              "name": "DEBOUNCE_SEGUNDOS",
+              "type": "number"
+            },
+            {
+              "name": "MEMORIA_TTL_HORAS",
+              "type": "number"
+            },
+            {
+              "name": "MEMORIA_MENSAGENS",
+              "type": "number"
+            },
+            {
+              "name": "PAUSA_HORAS",
+              "type": "number"
+            },
+            {
+              "name": "MAX_IDADE_MSG_SEGUNDOS",
+              "type": "number"
+            },
+            {
+              "name": "TIMEZONE",
+              "type": "string"
+            },
+            {
+              "name": "DIAS_CALENDARIO",
+              "type": "number"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "a45e7de5-772c-4fe5-bb0b-800ecd335954",
+      "name": "Criar tabela de configuração",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "chatbot_divercity_config"
+        },
+        "matchType": "anyCondition",
+        "returnAll": false,
+        "limit": 1
+      },
+      "id": "28f8eae8-ee96-470e-a163-ed5c786363e1",
+      "name": "Buscar linha de configuração",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        448,
+        0
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "bee58d1d-6db7-4ea9-b893-8381703af3a4",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "41c459fd-3609-448c-9ca7-242c30e4e98c",
+      "name": "Configuração já existe?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        672,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "chatbot_divercity_config"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "API_BASE_URL": "https://www.divercitypark.com.br/api/v1",
+            "PATH_PRECOS": "/content/prices",
+            "PATH_HORARIOS": "/content/hours",
+            "WAHA_SESSION": "Default",
+            "GRUPO_ATENDIMENTO_ID": "",
+            "INCLUIR_LINK_WA": true,
+            "MODO_TESTE": true,
+            "ALLOWLIST": "",
+            "CONTATOS_IGNORADOS": "",
+            "OPENAI_MODEL": "gpt-4o-mini",
+            "TEMPERATURA": 0.2,
+            "DEBOUNCE_SEGUNDOS": 5,
+            "MEMORIA_TTL_HORAS": 6,
+            "MEMORIA_MENSAGENS": 10,
+            "PAUSA_HORAS": 12,
+            "MAX_IDADE_MSG_SEGUNDOS": 300,
+            "TIMEZONE": "America/Sao_Paulo",
+            "DIAS_CALENDARIO": 21
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "API_BASE_URL",
+              "displayName": "API_BASE_URL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "PATH_PRECOS",
+              "displayName": "PATH_PRECOS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "PATH_HORARIOS",
+              "displayName": "PATH_HORARIOS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "WAHA_SESSION",
+              "displayName": "WAHA_SESSION",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "GRUPO_ATENDIMENTO_ID",
+              "displayName": "GRUPO_ATENDIMENTO_ID",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "INCLUIR_LINK_WA",
+              "displayName": "INCLUIR_LINK_WA",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "MODO_TESTE",
+              "displayName": "MODO_TESTE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "ALLOWLIST",
+              "displayName": "ALLOWLIST",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "CONTATOS_IGNORADOS",
+              "displayName": "CONTATOS_IGNORADOS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "OPENAI_MODEL",
+              "displayName": "OPENAI_MODEL",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "TEMPERATURA",
+              "displayName": "TEMPERATURA",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "DEBOUNCE_SEGUNDOS",
+              "displayName": "DEBOUNCE_SEGUNDOS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "MEMORIA_TTL_HORAS",
+              "displayName": "MEMORIA_TTL_HORAS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "MEMORIA_MENSAGENS",
+              "displayName": "MEMORIA_MENSAGENS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "PAUSA_HORAS",
+              "displayName": "PAUSA_HORAS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "MAX_IDADE_MSG_SEGUNDOS",
+              "displayName": "MAX_IDADE_MSG_SEGUNDOS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "TIMEZONE",
+              "displayName": "TIMEZONE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "DIAS_CALENDARIO",
+              "displayName": "DIAS_CALENDARIO",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "15e412a3-0cfe-4d79-be1f-d312eea09896",
+      "name": "Inserir configuração padrão",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        896,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "table",
+        "operation": "create",
+        "tableName": "chatbot_divercity_instrucoes",
+        "columns": {
+          "column": [
+            {
+              "name": "PERSONA_E_REGRAS",
+              "type": "string"
+            },
+            {
+              "name": "FATOS_DO_PARQUE",
+              "type": "string"
+            },
+            {
+              "name": "AVISOS_DE_HOJE",
+              "type": "string"
+            },
+            {
+              "name": "FERIADOS",
+              "type": "string"
+            },
+            {
+              "name": "MSG_HANDOFF_CLIENTE",
+              "type": "string"
+            },
+            {
+              "name": "MSG_MIDIA",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {
+          "createIfNotExists": true
+        }
+      },
+      "id": "54ae01a9-e44a-48c2-bccc-b5970cd14bb0",
+      "name": "Criar tabela de instruções",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "get",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "chatbot_divercity_instrucoes"
+        },
+        "matchType": "anyCondition",
+        "returnAll": false,
+        "limit": 1
+      },
+      "id": "692a481b-dcc3-429e-896a-8917dfc99aff",
+      "name": "Buscar linha de instruções",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1344,
+        0
+      ],
+      "alwaysOutputData": true
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "08edbe31-535b-4fd3-93bd-d040372168ef",
+              "leftValue": "={{ $json.id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "number",
+                "operation": "exists",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "543c933e-d8d0-4aab-a647-9c4b1265ac00",
+      "name": "Instruções já existem?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1568,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "row",
+        "operation": "insert",
+        "dataTableId": {
+          "__rl": true,
+          "mode": "name",
+          "value": "chatbot_divercity_instrucoes"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "PERSONA_E_REGRAS": "Você é o Dry, assistente virtual do Divercity Park, atendendo clientes pelo WhatsApp.\nFale em português do Brasil, de forma simpática, natural e direta (1 a 4 linhas por mensagem,\nno máximo um emoji). Se não houver mensagens anteriores na memória, apresente-se como\nassistente virtual.\n\nCOMO CONVERSAR\n- Converse de verdade. Responda cumprimentos e conversa solta (\"oi\", \"bom dia\", \"tudo bem?\")\n  com simpatia e pergunte como pode ajudar. Não encaminhe para a atendente só porque o\n  cliente ainda não disse o que quer.\n- Se a mensagem for vaga, faça uma pergunta curta para entender o que o cliente precisa\n  (preço, horário, dia da visita...).\n- Mantenha o fio da conversa usando as mensagens anteriores.\n\nO QUE VOCÊ FAZ\n- Informar preço de passaporte (entrada), horário de funcionamento e o que estiver em\n  \"FATOS DO PARQUE\" ou \"AVISOS DE HOJE\".\n- Só encaminhe para a atendente (status \"humano\") quando você não souber responder com as\n  informações que tem, ou nos casos da regra 4.\n\nREGRAS\n1. Nunca invente preço, horário, regra ou desconto. Use só o que vier das ferramentas,\n   de \"FATOS DO PARQUE\" ou de \"AVISOS DE HOJE\". Se o aviso contradiz outra informação, o aviso vale.\n2. Preço e horário: sempre consulte a ferramenta antes de responder. Não reaproveite valores\n   de mensagens anteriores.\n3. Se a ferramenta falhar ou vier vazia, ou você não tiver certeza da informação: status \"humano\".\n4. Festa, aniversário, orçamento, reserva do salão, data, disponibilidade, pagamento,\n   reclamação ou pedido para falar com uma pessoa: status \"humano\". Não informe preço de festa.\n5. Nunca prometa nada em nome do parque (desconto, reserva, exceção).\n\nPASSAPORTE\n- Tem preço de criança e de acompanhante, por duração (30 min, 1 h, 2 h, 3 h).\n- O preço depende do dia: use o CALENDÁRIO abaixo para saber qual preço vale na data.\n  Se o cliente não disse o dia da visita, pergunte antes de informar um valor.\n- Escreva valores como R$ 45,00. Informe só as durações que o cliente pediu; se não pediu\n  nenhuma, ofereça as opções.\n\nHORÁRIO\n- Use a faixa do dia indicada no CALENDÁRIO e o horário da ferramenta.\n- Para \"estão abertos agora?\", compare a hora atual (horário de Brasília) com a faixa de hoje.\n\nSTATUS E FORMATO DE SAÍDA\n- Responda SEMPRE e SOMENTE com um objeto JSON, sem texto fora dele e sem bloco de código:\n  {\"resposta\": \"...\", \"status\": \"continua\", \"motivo\": \"...\", \"resumo\": [\"...\"]}\n- \"continua\": você respondeu ou fez uma pergunta e a conversa segue. Vale para cumprimentos e\n  para respostas de preço ou horário (o cliente pode ter mais dúvidas).\n- \"resolvido\": somente quando o cliente encerrar de forma explícita (agradeceu e disse que era\n  só isso, \"tchau\", \"valeu\"). Despeça-se em uma linha (\"Qualquer dúvida é só chamar!\").\n  Nunca use \"resolvido\" logo depois de informar preço ou horário sem o cliente encerrar.\n- \"humano\": precisa de atendente. \"resposta\" avisa o cliente que uma atendente vai\n  continuar a conversa; \"motivo\" é curto; \"resumo\" tem até 3 linhas com o que o cliente\n  perguntou e onde parou.",
+            "FATOS_DO_PARQUE": "Endereço: [PREENCHER]\nRegras de entrada: [PREENCHER]\nPolítica de acompanhante: [PREENCHER]\nDescontos: [PREENCHER]\nEstacionamento: [PREENCHER]",
+            "AVISOS_DE_HOJE": "",
+            "FERIADOS": "2026-10-12,2026-11-02,2026-11-15,2026-11-20,2026-12-25,2027-01-01",
+            "MSG_HANDOFF_CLIENTE": "Vou chamar uma das nossas atendentes pra te ajudar com isso. Ela te responde por aqui em breve.",
+            "MSG_MIDIA": "Por enquanto eu só consigo ler mensagens de texto. Vou chamar uma atendente pra te ajudar."
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "PERSONA_E_REGRAS",
+              "displayName": "PERSONA_E_REGRAS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "FATOS_DO_PARQUE",
+              "displayName": "FATOS_DO_PARQUE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "AVISOS_DE_HOJE",
+              "displayName": "AVISOS_DE_HOJE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "FERIADOS",
+              "displayName": "FERIADOS",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "MSG_HANDOFF_CLIENTE",
+              "displayName": "MSG_HANDOFF_CLIENTE",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            },
+            {
+              "id": "MSG_MIDIA",
+              "displayName": "MSG_MIDIA",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "readOnly": false,
+              "removed": false
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "id": "c1deaa39-13bf-4ccc-b6d5-86b7cf8e9163",
+      "name": "Inserir instruções padrão",
+      "type": "n8n-nodes-base.dataTable",
+      "typeVersion": 1.1,
+      "position": [
+        1792,
+        96
+      ]
+    }
+  ],
+  "connections": {
+    "Iniciar instalação": {
+      "main": [
+        [
+          {
+            "node": "Criar tabela de configuração",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Criar tabela de configuração": {
+      "main": [
+        [
+          {
+            "node": "Buscar linha de configuração",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar linha de configuração": {
+      "main": [
+        [
+          {
+            "node": "Configuração já existe?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Configuração já existe?": {
+      "main": [
+        [
+          {
+            "node": "Criar tabela de instruções",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Inserir configuração padrão",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Inserir configuração padrão": {
+      "main": [
+        [
+          {
+            "node": "Criar tabela de instruções",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Criar tabela de instruções": {
+      "main": [
+        [
+          {
+            "node": "Buscar linha de instruções",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Buscar linha de instruções": {
+      "main": [
+        [
+          {
+            "node": "Instruções já existem?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Instruções já existem?": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Inserir instruções padrão",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "FF0x666oa1bfHLDI",
+    "binaryMode": "separate"
+  }
+}

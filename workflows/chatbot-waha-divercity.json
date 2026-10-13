@@ -284,7 +284,7 @@
     {
       "parameters": {
         "mode": "raw",
-        "jsonOutput": "={{ Object.assign({}, { CONFIG: $('CONFIG').first().json, INSTRUCOES: $('INSTRUCOES').first().json, evento: $('2.1 Receber evento WAHA').first().json }) }}",
+        "jsonOutput": "={{ { CONFIG: $('CONFIG').first().json, INSTRUCOES: $('INSTRUCOES').first().json, evento: $('2.0 Capturar evento').first().json.evento } }}",
         "includeOtherFields": false,
         "options": {}
       },
@@ -459,6 +459,22 @@
         1820,
         560
       ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ { evento: $json } }}",
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "abe1c206-4d84-4f73-8b29-92d0142fec24",
+      "name": "2.0 Capturar evento",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        220,
+        360
+      ]
     }
   ],
   "connections": {
@@ -469,7 +485,7 @@
         [],
         [
           {
-            "node": "CONFIG",
+            "node": "2.0 Capturar evento",
             "type": "main",
             "index": 0
           }
@@ -554,6 +570,17 @@
         [
           {
             "node": "7 Executar resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.0 Capturar evento": {
+      "main": [
+        [
+          {
+            "node": "CONFIG",
             "type": "main",
             "index": 0
           }

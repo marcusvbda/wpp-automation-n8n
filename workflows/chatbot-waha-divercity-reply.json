@@ -1,0 +1,1280 @@
+{
+  "name": "[chatbot] Divercity - Resposta e handoff",
+  "id": "msQXMvHkSmTdK8Ll",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## 0 Entrada — chamado pelo fluxo principal\nEntrada: ou o item do agente { output: { resposta, status, motivo, resumo }, chatId, telefone, nomeContato, ehLid, sessao, textoCliente }, ou um item de mídia vindo dos filtros (tipo audio, imagem, video, documento, localizacao ou contato, tipoLabel, legenda…); sempre com CONFIG e INSTRUCOES. Os nós CONFIG e INSTRUCOES daqui só repetem os valores do fluxo principal; edite-os lá.\nSaída: fim do fluxo, nada volta ao principal.",
+        "height": 240,
+        "width": 960,
+        "color": 7
+      },
+      "id": "86f65597-6bf3-40c7-988a-27a6196e29c8",
+      "name": "0 Nota Entrada do sub-workflow",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 7 Resposta, encerramento e handoff — envia, encerra a conversa ou pausa e chama a equipe\nEnvia a resposta ao cliente, pausa o chat por PAUSA_HORAS, limpa conversa e buffer e avisa o grupo de atendimento.",
+        "height": 700,
+        "width": 3220,
+        "color": 7
+      },
+      "id": "3aaeaea7-aca6-4b24-8b2d-37eb48a239b4",
+      "name": "7 Nota Resposta e handoff",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "9d251947-b765-4758-b3d3-ecf24a93ae1a",
+      "name": "Receber do fluxo principal",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ $json.CONFIG }}",
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "093e0344-0fc8-4dda-8171-d8c004f9b25b",
+      "name": "CONFIG",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        220,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ $('Receber do fluxo principal').first().json.INSTRUCOES }}",
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "9f8d029a-2162-4ae8-b0a1-8cb648e2b844",
+      "name": "INSTRUCOES",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        440,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ Object.fromEntries(Object.entries($('Receber do fluxo principal').first().json).filter((e) => e[0] !== 'CONFIG' && e[0] !== 'INSTRUCOES')) }}",
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "fbfe0349-521f-42d1-9578-a54fbece026e",
+      "name": "7.0 Dados recebidos",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        660,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "5ab14c13-06e0-4228-a615-6957f5f61b76",
+              "leftValue": "={{ ['audio', 'imagem', 'video', 'documento', 'localizacao', 'contato'].includes($json.tipo) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "1e3e8fc8-4d1b-4f19-8740-13f11e61f11f",
+      "name": "7.0 É mídia?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        0,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "c9bdd18d-93dd-4c07-ba7d-637bbbaf8edd",
+                    "leftValue": "={{ $json.output?.status }}",
+                    "rightValue": "humano",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "humano"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "e09f3196-1ae4-4338-b25d-1911bc8b5185",
+                    "leftValue": "={{ $json.output?.status }}",
+                    "rightValue": "continua",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  },
+                  {
+                    "id": "3384ba71-2b4e-4e31-984c-6cd65a8b6824",
+                    "leftValue": "={{ String($json.output?.resposta ?? '').trim() }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEmpty",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "continua"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "5e4adc5a-af08-4df1-b2dd-af526e114654",
+                    "leftValue": "={{ $json.output?.status }}",
+                    "rightValue": "resolvido",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  },
+                  {
+                    "id": "e47826f2-ba6a-4218-a125-9c618b1493b7",
+                    "leftValue": "={{ String($json.output?.resposta ?? '').trim() }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEmpty",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "resolvido"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra",
+          "renameFallbackOutput": "falha técnica"
+        }
+      },
+      "name": "7.0 Rotear por status",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        220,
+        440
+      ],
+      "id": "16a22f61-8252-4fa8-9fb8-1ac2aa790c68"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b04d228a-77c7-437c-82ac-af087e995b5a",
+              "name": "resposta",
+              "value": "={{ $json.output.resposta }}",
+              "type": "string"
+            },
+            {
+              "id": "9a5d4e21-5e3a-43b0-8776-63f41d278e37",
+              "name": "motivo",
+              "value": "={{ $json.output.motivo ?? '' }}",
+              "type": "string"
+            },
+            {
+              "id": "99eff45a-5cbf-42ed-a15d-78cea2c09455",
+              "name": "resumo",
+              "value": "={{ $json.output.resumo ?? [] }}",
+              "type": "array"
+            },
+            {
+              "id": "faf343f5-b83a-4915-a03b-8cdcb8fa37f9",
+              "name": "ultimoTexto",
+              "value": "={{ $('7.0 Dados recebidos').first().json.textoCliente }}",
+              "type": "string"
+            },
+            {
+              "id": "b8e7316d-9def-47af-9dc9-9b489972759e",
+              "name": "chatId",
+              "value": "={{ $('7.0 Dados recebidos').first().json.chatId }}",
+              "type": "string"
+            },
+            {
+              "id": "303f7489-98d6-4701-a6f6-472f4ff59559",
+              "name": "telefone",
+              "value": "={{ String($('7.0 Dados recebidos').first().json.telefone ?? '') }}",
+              "type": "string"
+            },
+            {
+              "id": "d95dc484-e645-46a4-b3fc-548242297804",
+              "name": "nomeContato",
+              "value": "={{ String($('7.0 Dados recebidos').first().json.nomeContato ?? '') }}",
+              "type": "string"
+            },
+            {
+              "id": "cee26d4f-ec1e-47d9-84c8-4fb7f192fc97",
+              "name": "ehLid",
+              "value": "={{ !!$('7.0 Dados recebidos').first().json.ehLid }}",
+              "type": "boolean"
+            },
+            {
+              "id": "76212d87-98d8-4fb4-b1cd-3a324afcab5f",
+              "name": "sessao",
+              "value": "={{ $('7.0 Dados recebidos').first().json.sessao }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "name": "7.0 Preparar handoff do agente",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        500,
+        340
+      ],
+      "id": "dd083544-1483-42f8-abfe-d8d7f2733ac5"
+    },
+    {
+      "parameters": {},
+      "name": "7.1 Resposta pronta",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        500,
+        450
+      ],
+      "id": "6d3464d2-9a04-4031-bbdc-2a20a5b93e43"
+    },
+    {
+      "parameters": {},
+      "name": "7.2 Encerramento pronto",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        500,
+        560
+      ],
+      "id": "d88d8507-5f3b-4d1d-82b4-0c2e1bc887ea"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "ffbe91a5-e414-4bbe-a0c3-3b164d471496",
+              "name": "resposta",
+              "value": "",
+              "type": "string"
+            },
+            {
+              "id": "6544f2af-4723-4a9d-b7cb-4f6b72dea62c",
+              "name": "motivo",
+              "value": "falha técnica",
+              "type": "string"
+            },
+            {
+              "id": "22257997-d3c2-40af-ae0f-5be981331931",
+              "name": "resumo",
+              "value": "={{ [] }}",
+              "type": "array"
+            },
+            {
+              "id": "39e9dfac-70fc-4c09-88a4-9d4bdfe70bc6",
+              "name": "ultimoTexto",
+              "value": "={{ $('7.0 Dados recebidos').first().json.textoCliente }}",
+              "type": "string"
+            },
+            {
+              "id": "025f7740-680e-4cc5-844c-4901cf3740c0",
+              "name": "chatId",
+              "value": "={{ $('7.0 Dados recebidos').first().json.chatId }}",
+              "type": "string"
+            },
+            {
+              "id": "cbfaa1c9-8671-4fe6-aab0-93b4e70e5ae7",
+              "name": "telefone",
+              "value": "={{ String($('7.0 Dados recebidos').first().json.telefone ?? '') }}",
+              "type": "string"
+            },
+            {
+              "id": "ebd40208-1328-4868-bfb1-c06150261dde",
+              "name": "nomeContato",
+              "value": "={{ String($('7.0 Dados recebidos').first().json.nomeContato ?? '') }}",
+              "type": "string"
+            },
+            {
+              "id": "c28e38f5-1ee9-4916-88e1-d7225b8d91b2",
+              "name": "ehLid",
+              "value": "={{ !!$('7.0 Dados recebidos').first().json.ehLid }}",
+              "type": "boolean"
+            },
+            {
+              "id": "33b32440-ad35-42f2-a50b-0836f99a74e9",
+              "name": "sessao",
+              "value": "={{ $('7.0 Dados recebidos').first().json.sessao }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "name": "6.3 Preparar falha técnica",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        660,
+        680
+      ],
+      "id": "7eed1dd6-5cf2-468e-bfc9-316eeb191a8f"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "9e3a63e6-ef33-40e5-a3e0-7bfb2ecc9398",
+              "name": "resposta",
+              "value": "={{ $('INSTRUCOES').first().json.MSG_MIDIA }}",
+              "type": "string"
+            },
+            {
+              "id": "3da9e623-290c-4386-aa29-aa1b362a1039",
+              "name": "motivo",
+              "value": "={{ 'cliente enviou ' + $json.tipoLabel }}",
+              "type": "string"
+            },
+            {
+              "id": "e78c8e42-57a5-48e7-843d-574edd5f3770",
+              "name": "resumo",
+              "value": "={{ ['Cliente enviou ' + $json.tipoLabel + ($json.legenda ? ': ' + $json.legenda : '')] }}",
+              "type": "array"
+            },
+            {
+              "id": "005492a2-142a-4525-ab7c-4e9ba2a28106",
+              "name": "ultimoTexto",
+              "value": "={{ $json.legenda }}",
+              "type": "string"
+            },
+            {
+              "id": "9950e64f-cafa-4008-b799-3c0b1dac62ee",
+              "name": "chatId",
+              "value": "={{ $json.chatId }}",
+              "type": "string"
+            },
+            {
+              "id": "423308b4-b5db-4808-9775-b4dcbd5dea82",
+              "name": "telefone",
+              "value": "={{ $json.telefone }}",
+              "type": "string"
+            },
+            {
+              "id": "99322932-fa42-44bf-bb4f-7cf2bf0c6cbc",
+              "name": "nomeContato",
+              "value": "={{ $json.nomeContato }}",
+              "type": "string"
+            },
+            {
+              "id": "367384fa-df33-4e8e-b9be-5bfeea374a26",
+              "name": "ehLid",
+              "value": "={{ $json.ehLid }}",
+              "type": "boolean"
+            },
+            {
+              "id": "9fb92d20-5e00-4d07-bdd1-451161e9dd6e",
+              "name": "sessao",
+              "value": "={{ $json.sessao }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "09c567bb-67f7-426e-a603-cf2bf2fe0208",
+      "name": "2.3 Preparar handoff de mídia",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        220,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3ad1525f-15ff-485b-8b2b-69ee72a4dace",
+              "name": "resposta",
+              "value": "={{ String($json.resposta ?? '').trim() || $('INSTRUCOES').first().json.MSG_HANDOFF_CLIENTE }}",
+              "type": "string"
+            },
+            {
+              "id": "2d6752fe-baa3-4143-afad-51547de19589",
+              "name": "motivo",
+              "value": "={{ String($json.motivo ?? '') }}",
+              "type": "string"
+            },
+            {
+              "id": "84e46d9a-7752-400d-ada9-24ab8ddc3b4b",
+              "name": "resumo",
+              "value": "={{ (Array.isArray($json.resumo) ? $json.resumo : []).map((l) => String(l ?? '').trim()).filter(Boolean).slice(0, 3) }}",
+              "type": "array"
+            },
+            {
+              "id": "25d261d5-c22c-4442-9829-08ec48c41360",
+              "name": "ultimoTexto",
+              "value": "={{ String($json.ultimoTexto ?? '') }}",
+              "type": "string"
+            },
+            {
+              "id": "9f0349d0-ec0c-44ad-991b-95ae0e2b011b",
+              "name": "chatId",
+              "value": "={{ $json.chatId }}",
+              "type": "string"
+            },
+            {
+              "id": "9ae738b4-308c-43d4-a232-c60078069233",
+              "name": "telefone",
+              "value": "={{ String($json.telefone ?? '') }}",
+              "type": "string"
+            },
+            {
+              "id": "b1cab5e1-5f26-4430-8cc5-8fa8785c89f8",
+              "name": "nomeContato",
+              "value": "={{ String($json.nomeContato ?? '') }}",
+              "type": "string"
+            },
+            {
+              "id": "a2eed349-3646-4cd7-b620-4964368d168e",
+              "name": "ehLid",
+              "value": "={{ !!$json.ehLid }}",
+              "type": "boolean"
+            },
+            {
+              "id": "574d0b1e-9135-4c06-a6eb-f10bbb3ad17b",
+              "name": "sessao",
+              "value": "={{ $json.sessao }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "043113d3-c21d-4581-898b-5ddcf518f0cb",
+      "name": "7.3 Preparar handoff",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        960,
+        450
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "Stop Typing",
+        "session": "={{ $('CONFIG').first().json.WAHA_SESSION }}",
+        "chatId": "={{ $('7.3 Preparar handoff').first().json.chatId }}",
+        "resource": "Chatting",
+        "requestOptions": {}
+      },
+      "id": "17bcb93d-1173-4a39-90e2-4a7785bb1f66",
+      "name": "7.3 Parar digitação",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        1180,
+        450
+      ],
+      "credentials": {
+        "wahaApi": {
+          "id": "fLb4y6X1sdRn0lC8",
+          "name": "WAHA account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "Send Text",
+        "session": "={{ $('CONFIG').first().json.WAHA_SESSION }}",
+        "chatId": "={{ $('7.3 Preparar handoff').first().json.chatId }}",
+        "reply_to": "",
+        "text": "={{ $('7.3 Preparar handoff').first().json.resposta }}",
+        "resource": "Chatting",
+        "requestOptions": {}
+      },
+      "id": "a3c15e62-9ab1-4d06-b528-cb424f21c7ca",
+      "name": "7.3 Enviar msg de handoff",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        1400,
+        450
+      ],
+      "credentials": {
+        "wahaApi": {
+          "id": "fLb4y6X1sdRn0lC8",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "={{ 'bot-msg:' + String((() => { const r = $json.id; return typeof r === 'string' ? r : (r?._serialized ?? r?.id ?? ''); })()).split('_').pop() }}",
+        "value": "1",
+        "keyType": "string",
+        "expire": true,
+        "ttl": 120
+      },
+      "id": "323b8fb5-64c6-4213-b8b0-2a8f0163eb98",
+      "name": "7.3 Registrar msg do bot",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1620,
+        450
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "={{ 'pausa:' + $('7.3 Preparar handoff').first().json.chatId }}",
+        "value": "1",
+        "keyType": "string",
+        "expire": true,
+        "ttl": "={{ Math.max(1, Math.round($('CONFIG').first().json.PAUSA_HORAS * 3600)) }}"
+      },
+      "id": "0dbe7c08-e27f-46d4-88b2-6f575dffe3b7",
+      "name": "7.3 Pausar chat",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1840,
+        450
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "={{ 'conv:' + $('7.3 Preparar handoff').first().json.chatId }}"
+      },
+      "id": "a1cf27a4-1d59-4dca-86b5-2442eed2ed7f",
+      "name": "7.3 Encerrar conversa",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        2060,
+        450
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "={{ 'buf:' + $('7.3 Preparar handoff').first().json.chatId }}"
+      },
+      "id": "4739702d-7b11-45bc-9853-949254dfbb2c",
+      "name": "7.3 Limpar buffer",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        2280,
+        450
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "ee44926e-029e-4f93-ab8e-7500017404a9",
+              "leftValue": "={{ String($('CONFIG').first().json.GRUPO_ATENDIMENTO_ID ?? '').trim() !== '' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "91a48324-be1c-4097-b63a-f470bf6e7e93",
+      "name": "7.3 Tem grupo de atendimento?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2500,
+        450
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "18496427-fb69-45ef-a598-b45e7feb923d",
+              "name": "evento",
+              "value": "grupo_nao_configurado",
+              "type": "string"
+            },
+            {
+              "id": "2bd9d1f8-1fd2-4313-b69a-56aa76db0396",
+              "name": "detalhe",
+              "value": "aviso ao grupo não enviado: GRUPO_ATENDIMENTO_ID vazio na CONFIG",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "1fbc73a1-6f76-4706-849c-9b77abde9fed",
+      "name": "7.3 Log sem grupo",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        2720,
+        570
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Monta o texto do aviso ao grupo de atendimento (função pura, sem rede)\nconst h = $('7.3 Preparar handoff').first().json;\nconst cfg = $('CONFIG').first().json;\nconst tel = String(h.telefone ?? '').replace(/\\D/g, '');\n// 55 + DDD + 8 ou 9 dígitos vira +55 DD NNNN(N)-NNNN; outros países ficam só com +\nconst m = tel.match(/^55(\\d{2})(\\d{4,5})(\\d{4})$/);\nconst telFmt = !tel ? '' : m ? `+55 ${m[1]} ${m[2]}-${m[3]}` : `+${tel}`;\nconst nome = String(h.nomeContato ?? '').trim() || 'sem nome';\nconst resumo = (Array.isArray(h.resumo) ? h.resumo : []).map((l) => String(l ?? '').trim()).filter(Boolean).slice(0, 3);\nconst ultimo = String(h.ultimoTexto ?? '').trim();\nconst linhas = ['Atendimento humano necessário', `Cliente: ${nome}${telFmt ? ' — ' + telFmt : ''}`];\n// link só quando habilitado na CONFIG e houver telefone (chat @lid sem alt não tem)\nif (cfg.INCLUIR_LINK_WA && tel) linhas.push(`Conversa: https://wa.me/${tel}`);\nlinhas.push(`Motivo: ${h.motivo ?? ''}`);\nif (resumo.length) linhas.push('Resumo:', ...resumo.map((l) => `• ${l}`));\nif (ultimo) linhas.push(`Última mensagem: \"${ultimo}\"`);\nlinhas.push(`O bot parou de responder este chat por ${cfg.PAUSA_HORAS}h (renova a cada mensagem da atendente).`);\nreturn [{ json: { texto: linhas.join('\\n') } }];\n"
+      },
+      "id": "ea5052b8-db10-4660-8b6e-3913eb2f4273",
+      "name": "7.3 Montar aviso do grupo",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2720,
+        350
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "Send Text",
+        "session": "={{ $('CONFIG').first().json.WAHA_SESSION }}",
+        "chatId": "={{ $('CONFIG').first().json.GRUPO_ATENDIMENTO_ID }}",
+        "reply_to": "",
+        "text": "={{ $('7.3 Montar aviso do grupo').first().json.texto }}",
+        "resource": "Chatting",
+        "requestOptions": {}
+      },
+      "id": "7b90b597-c895-4d8d-910a-635ec8bc8ad8",
+      "name": "7.3 Avisar grupo",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        2940,
+        350
+      ],
+      "credentials": {
+        "wahaApi": {
+          "id": "fLb4y6X1sdRn0lC8",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "Stop Typing",
+        "session": "={{ $('CONFIG').first().json.WAHA_SESSION }}",
+        "chatId": "={{ $('7.0 Dados recebidos').first().json.chatId }}",
+        "resource": "Chatting",
+        "requestOptions": {}
+      },
+      "id": "a879b764-810c-46c2-b4c3-bac2e32b0372",
+      "name": "7.1 Parar digitação",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        960,
+        750
+      ],
+      "credentials": {
+        "wahaApi": {
+          "id": "fLb4y6X1sdRn0lC8",
+          "name": "WAHA account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "Send Text",
+        "session": "={{ $('CONFIG').first().json.WAHA_SESSION }}",
+        "chatId": "={{ $('7.0 Dados recebidos').first().json.chatId }}",
+        "reply_to": "",
+        "text": "={{ $('7.0 Rotear por status').first().json.output.resposta }}",
+        "resource": "Chatting",
+        "requestOptions": {}
+      },
+      "id": "6d86761f-e194-4a1e-97e0-cabee3e04cbd",
+      "name": "7.1 Enviar resposta",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        1180,
+        750
+      ],
+      "credentials": {
+        "wahaApi": {
+          "id": "fLb4y6X1sdRn0lC8",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "={{ 'bot-msg:' + String((() => { const r = $json.id; return typeof r === 'string' ? r : (r?._serialized ?? r?.id ?? ''); })()).split('_').pop() }}",
+        "value": "1",
+        "keyType": "string",
+        "expire": true,
+        "ttl": 120
+      },
+      "id": "ed1c624a-14f6-4f00-ab92-0bddc00d3155",
+      "name": "7.1 Registrar msg do bot",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1400,
+        750
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "Stop Typing",
+        "session": "={{ $('CONFIG').first().json.WAHA_SESSION }}",
+        "chatId": "={{ $('7.0 Dados recebidos').first().json.chatId }}",
+        "resource": "Chatting",
+        "requestOptions": {}
+      },
+      "id": "64bfa191-ff31-4240-9960-a61ee326f16e",
+      "name": "7.2 Parar digitação",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        960,
+        870
+      ],
+      "credentials": {
+        "wahaApi": {
+          "id": "fLb4y6X1sdRn0lC8",
+          "name": "WAHA account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "Send Text",
+        "session": "={{ $('CONFIG').first().json.WAHA_SESSION }}",
+        "chatId": "={{ $('7.0 Dados recebidos').first().json.chatId }}",
+        "reply_to": "",
+        "text": "={{ $('7.0 Rotear por status').first().json.output.resposta }}",
+        "resource": "Chatting",
+        "requestOptions": {}
+      },
+      "id": "99a31786-edbc-4518-999a-fa648fe347ab",
+      "name": "7.2 Enviar despedida",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        1180,
+        870
+      ],
+      "credentials": {
+        "wahaApi": {
+          "id": "fLb4y6X1sdRn0lC8",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "={{ 'bot-msg:' + String((() => { const r = $json.id; return typeof r === 'string' ? r : (r?._serialized ?? r?.id ?? ''); })()).split('_').pop() }}",
+        "value": "1",
+        "keyType": "string",
+        "expire": true,
+        "ttl": 120
+      },
+      "id": "84f4ee7d-5b96-435d-b0ab-fd60ee5aeb92",
+      "name": "7.2 Registrar msg do bot",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1400,
+        870
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "={{ 'conv:' + $('7.0 Dados recebidos').first().json.chatId }}"
+      },
+      "id": "b9953429-017d-44a9-b552-8876da6e0b76",
+      "name": "7.2 Encerrar conversa",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1620,
+        870
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "2.3 Preparar handoff de mídia": {
+      "main": [
+        [
+          {
+            "node": "7.3 Preparar handoff",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.3 Preparar handoff": {
+      "main": [
+        [
+          {
+            "node": "7.3 Parar digitação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.3 Parar digitação": {
+      "main": [
+        [
+          {
+            "node": "7.3 Enviar msg de handoff",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.3 Enviar msg de handoff": {
+      "main": [
+        [
+          {
+            "node": "7.3 Registrar msg do bot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.3 Registrar msg do bot": {
+      "main": [
+        [
+          {
+            "node": "7.3 Pausar chat",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.3 Pausar chat": {
+      "main": [
+        [
+          {
+            "node": "7.3 Encerrar conversa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.3 Encerrar conversa": {
+      "main": [
+        [
+          {
+            "node": "7.3 Limpar buffer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.3 Limpar buffer": {
+      "main": [
+        [
+          {
+            "node": "7.3 Tem grupo de atendimento?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.3 Tem grupo de atendimento?": {
+      "main": [
+        [
+          {
+            "node": "7.3 Montar aviso do grupo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "7.3 Log sem grupo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.3 Montar aviso do grupo": {
+      "main": [
+        [
+          {
+            "node": "7.3 Avisar grupo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.0 Rotear por status": {
+      "main": [
+        [
+          {
+            "node": "7.0 Preparar handoff do agente",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "7.1 Resposta pronta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "7.2 Encerramento pronto",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "6.3 Preparar falha técnica",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.0 Preparar handoff do agente": {
+      "main": [
+        [
+          {
+            "node": "7.3 Preparar handoff",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "6.3 Preparar falha técnica": {
+      "main": [
+        [
+          {
+            "node": "7.3 Preparar handoff",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.1 Resposta pronta": {
+      "main": [
+        [
+          {
+            "node": "7.1 Parar digitação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.1 Parar digitação": {
+      "main": [
+        [
+          {
+            "node": "7.1 Enviar resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.1 Enviar resposta": {
+      "main": [
+        [
+          {
+            "node": "7.1 Registrar msg do bot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.2 Encerramento pronto": {
+      "main": [
+        [
+          {
+            "node": "7.2 Parar digitação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.2 Parar digitação": {
+      "main": [
+        [
+          {
+            "node": "7.2 Enviar despedida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.2 Enviar despedida": {
+      "main": [
+        [
+          {
+            "node": "7.2 Registrar msg do bot",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.2 Registrar msg do bot": {
+      "main": [
+        [
+          {
+            "node": "7.2 Encerrar conversa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Receber do fluxo principal": {
+      "main": [
+        [
+          {
+            "node": "CONFIG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CONFIG": {
+      "main": [
+        [
+          {
+            "node": "INSTRUCOES",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INSTRUCOES": {
+      "main": [
+        [
+          {
+            "node": "7.0 Dados recebidos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.0 Dados recebidos": {
+      "main": [
+        [
+          {
+            "node": "7.0 É mídia?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.0 É mídia?": {
+      "main": [
+        [
+          {
+            "node": "2.3 Preparar handoff de mídia",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "7.0 Rotear por status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "FF0x666oa1bfHLDI",
+    "binaryMode": "separate"
+  }
+}

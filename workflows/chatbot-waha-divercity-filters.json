@@ -1,0 +1,1352 @@
+{
+  "name": "[chatbot] Divercity - Filtros",
+  "id": "AvWLP9xiCyvHhyn8",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## 0 Entrada — chamado pelo fluxo principal\nEntrada: { CONFIG, INSTRUCOES, evento } (evento = payload do WAHA). Os nós CONFIG e INSTRUCOES daqui só repetem os valores do fluxo principal; edite-os lá.\nSaída: nenhum item (nada a responder) ou um item com idMensagem, sessao, fromMe, source, chatId, timestamp, tipo, tipoLabel, texto, legenda, nomeContato, telefone, ehLid, CONFIG e INSTRUCOES (tipo = texto, audio, imagem, video, documento, localizacao ou contato).",
+        "height": 240,
+        "width": 960,
+        "color": 7
+      },
+      "id": "7da0a204-212e-46ad-88ff-a47909c72b86",
+      "name": "0 Nota Entrada do sub-workflow",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 2 Entrada e filtros — normaliza e descarta o que o bot não deve responder\nRecebe o evento do WAHA, normaliza a mensagem e descarta grupos, duplicadas, antigas, fora da allowlist e contatos salvos na agenda (2.2.5) antes de rotear por tipo.",
+        "height": 400,
+        "width": 4400,
+        "color": 7
+      },
+      "id": "0ceb129a-f8da-41d2-933b-3e90a18cddba",
+      "name": "2 Nota Entrada e filtros",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 3 Pausa e atendente humana — o bot fica calado enquanto uma pessoa atende o chat\nMensagem digitada pela atendente (não enviada pelo bot) pausa o chat por PAUSA_HORAS; chat pausado não recebe resposta do bot.",
+        "height": 420,
+        "width": 880,
+        "color": 7
+      },
+      "id": "d7441811-5b7b-44bc-9845-d6c53db3b7c8",
+      "name": "3 Nota Atendente",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2300,
+        740
+      ]
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "55c8b3eb-2693-4989-a6c4-641be4a7e521",
+      "name": "Receber do fluxo principal",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ $json.CONFIG }}",
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "d9a8d334-f342-4ca9-82e0-77e0a3233647",
+      "name": "CONFIG",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        220,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ $('Receber do fluxo principal').first().json.INSTRUCOES }}",
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "f9eaaafc-c3ba-4559-82af-db325ffadc7c",
+      "name": "INSTRUCOES",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        440,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ $('Receber do fluxo principal').first().json.evento }}",
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "c2c9254b-e32b-447b-85cb-5e797575bf66",
+      "name": "2.0 Evento recebido",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        660,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "3ed022ce-fd42-41ce-99ff-49562945fde4",
+              "name": "idMensagem",
+              "value": "={{ $('2.0 Evento recebido').first().json.payload?.id ?? '' }}",
+              "type": "string"
+            },
+            {
+              "id": "b07c148d-7759-444d-809e-d3a71fd92a13",
+              "name": "sessao",
+              "value": "={{ $('2.0 Evento recebido').first().json.session ?? '' }}",
+              "type": "string"
+            },
+            {
+              "id": "8b2ac14d-e05f-4953-a55b-c42866bd7bcc",
+              "name": "fromMe",
+              "value": "={{ $('2.0 Evento recebido').first().json.payload?.fromMe === true }}",
+              "type": "boolean"
+            },
+            {
+              "id": "71d1e3ee-f5ea-42d2-ae5e-0710959c49fd",
+              "name": "source",
+              "value": "={{ String($('2.0 Evento recebido').first().json.payload?.source ?? '') }}",
+              "type": "string"
+            },
+            {
+              "id": "512910b7-2aab-480d-904c-0de8e931fb02",
+              "name": "chatId",
+              "value": "={{ ($('2.0 Evento recebido').first().json.payload?.fromMe === true && $('2.0 Evento recebido').first().json.payload?.to) ? $('2.0 Evento recebido').first().json.payload.to : ($('2.0 Evento recebido').first().json.payload?.from ?? '') }}",
+              "type": "string"
+            },
+            {
+              "id": "781186a6-b3ec-4901-87a4-996943a8d120",
+              "name": "timestamp",
+              "value": "={{ Number($('2.0 Evento recebido').first().json.payload?.timestamp ?? 0) }}",
+              "type": "number"
+            },
+            {
+              "id": "f1b2a30b-a617-4ecd-bec7-c66a95496ea3",
+              "name": "corpo",
+              "value": "={{ String($('2.0 Evento recebido').first().json.payload?.body ?? '').trim() }}",
+              "type": "string"
+            },
+            {
+              "id": "f19762b3-4759-4817-9940-951599e3ac5a",
+              "name": "hasMedia",
+              "value": "={{ !!$('2.0 Evento recebido').first().json.payload?.hasMedia }}",
+              "type": "boolean"
+            },
+            {
+              "id": "338c955b-0acc-455b-b1de-56fe379d39d0",
+              "name": "mimetype",
+              "value": "={{ String($('2.0 Evento recebido').first().json.payload?.media?.mimetype ?? '') }}",
+              "type": "string"
+            },
+            {
+              "id": "25a6ccd8-12e2-4f98-b10e-065b0ddd614f",
+              "name": "nomeContato",
+              "value": "={{ String($('2.0 Evento recebido').first().json.payload?._data?.pushName ?? '') }}",
+              "type": "string"
+            },
+            {
+              "id": "113fe0ac-637b-42e6-8321-8d1e9127448c",
+              "name": "remoteJidAlt",
+              "value": "={{ String($('2.0 Evento recebido').first().json.payload?._data?.key?.remoteJidAlt ?? '') }}",
+              "type": "string"
+            },
+            {
+              "id": "8492bbd3-1399-43ef-a449-916a91517bcc",
+              "name": "temDados",
+              "value": "={{ !!$('2.0 Evento recebido').first().json.payload?._data?.message }}",
+              "type": "boolean"
+            },
+            {
+              "id": "5b0fe274-30a2-4a1a-a33c-f85a91a34d7b",
+              "name": "conteudo",
+              "value": "={{ ['ephemeralMessage', 'viewOnceMessage', 'viewOnceMessageV2', 'editedMessage'].reduce((m, w) => m?.[w]?.message ?? m, $('2.0 Evento recebido').first().json.payload?._data?.message) ?? {} }}",
+              "type": "object"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "dd9de74b-36fa-42ba-849d-4d1e31580327",
+      "name": "2.1 Extrair mensagem",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        880,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Normaliza o payload extraído para o formato único usado no restante do fluxo\nconst IGNORAR_CHAVES = ['messageContextInfo', 'senderKeyDistributionMessage'];\nconst POR_CHAVE = { audioMessage: 'audio', imageMessage: 'imagem', videoMessage: 'video', documentMessage: 'documento', documentWithCaptionMessage: 'documento',\n  locationMessage: 'localizacao', liveLocationMessage: 'localizacao', contactMessage: 'contato', contactsArrayMessage: 'contato', stickerMessage: 'figurinha' };\nconst ROTULOS = { audio: 'áudio', imagem: 'imagem', video: 'vídeo', documento: 'documento', localizacao: 'localização', contato: 'contato' };\nconst COM_LEGENDA = ['imagem', 'video', 'documento'];\nconst soDigitos = (jid) => String(jid).split('@')[0].split(':')[0].replace(/\\D/g, '');\nreturn $input.all().map((item) => {\n  const j = item.json;\n  let tipo = 'ignorar';\n  let texto = '';\n  let legendaInterna = '';\n  if (j.temDados) {\n    const c = j.conteudo ?? {};\n    const chave = Object.keys(c).find((k) => !IGNORAR_CHAVES.includes(k)) ?? '';\n    if (chave === 'conversation' || chave === 'extendedTextMessage') {\n      const interno = String(c.conversation ?? c.extendedTextMessage?.text ?? '').trim();\n      if (interno) { tipo = 'texto'; texto = j.corpo || interno; }\n    } else {\n      tipo = POR_CHAVE[chave] ?? 'ignorar';\n      legendaInterna = String(c[chave]?.caption ?? c.documentWithCaptionMessage?.message?.documentMessage?.caption ?? '');\n    }\n  } else if (!j.hasMedia) {\n    if (j.corpo) { tipo = 'texto'; texto = j.corpo; }\n  } else {\n    // sem _data: decide pelo mimetype\n    tipo = j.mimetype.startsWith('audio') ? 'audio' : j.mimetype.startsWith('image') ? 'imagem' : j.mimetype.startsWith('video') ? 'video' : 'documento';\n  }\n  const chatId = String(j.chatId ?? '');\n  const alt = String(j.remoteJidAlt ?? '');\n  const telefone = alt.endsWith('@s.whatsapp.net') ? soDigitos(alt)\n    : (chatId.endsWith('@c.us') || chatId.endsWith('@s.whatsapp.net')) ? soDigitos(chatId) : '';\n  return { json: {\n    idMensagem: j.idMensagem, sessao: j.sessao, fromMe: j.fromMe, source: j.source, chatId,\n    timestamp: j.timestamp, tipo, tipoLabel: ROTULOS[tipo] ?? '', texto,\n    legenda: COM_LEGENDA.includes(tipo) ? (j.corpo || legendaInterna) : '',\n    nomeContato: j.nomeContato, telefone, ehLid: chatId.endsWith('@lid'),\n  } };\n});"
+      },
+      "id": "5ac4a114-aa46-4d56-91fc-fa2031b116ad",
+      "name": "2.1 Normalizar mensagem",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "5ff78197-1bcb-473c-84f1-c64a38d5960b",
+              "leftValue": "={{ String($json.chatId ?? '') !== '' && !['@g.us', '@broadcast', '@newsletter'].some(s => String($json.chatId).endsWith(s)) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "f84f7565-936d-4f0f-9f17-706d967936f5",
+      "name": "2.2.1 Ignorar grupos e canais",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        1320,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "incr",
+        "key": "={{ 'entrega:' + $('2.1 Normalizar mensagem').first().json.idMensagem }}",
+        "expire": true,
+        "ttl": "={{ $('CONFIG').first().json.MAX_IDADE_MSG_SEGUNDOS * 2 }}"
+      },
+      "id": "34e0c423-0dc0-4826-a15c-37e4e2a4b609",
+      "name": "2.2.0 Contar entrega",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1540,
+        500
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "77f93da7-d385-40f7-a0ed-ff649e8d84f3",
+              "leftValue": "={{ Number(Object.values($json)[0]) === 1 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "7c353bfb-c9dc-4e5b-bc6e-dd63c81be185",
+      "name": "2.2.0 Manter primeira entrega",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        1760,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ $('2.1 Normalizar mensagem').first().json }}",
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "59e866bd-c382-4043-80a5-9ff77e06102b",
+      "name": "2.2.0 Restaurar mensagem",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1980,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "d68874bc-336b-46d3-b6bb-6a851bb273bd",
+              "leftValue": "={{ $json.fromMe }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "fbe16a36-cea0-4882-9711-a70b6387094b",
+      "name": "2.2.2 Enviada por mim?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2200,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "84b983e0-286b-4e4c-86fa-a62ebaeea1d7",
+              "leftValue": "={{ Math.floor(Date.now() / 1000) - $json.timestamp <= $('CONFIG').first().json.MAX_IDADE_MSG_SEGUNDOS }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c5ab35a0-45ad-49ae-a9a3-b0732f65f9d7",
+      "name": "2.2.3 Ignorar mensagens antigas",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        2420,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "95bf93f8-5a0e-4272-9f72-6e069387e483",
+              "leftValue": "={{ !$('CONFIG').first().json.MODO_TESTE || String($('CONFIG').first().json.ALLOWLIST ?? '').split(',').map(s => s.trim()).filter(Boolean).includes($json.telefone) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "05badd7c-8c9b-481e-8583-bed6074b6e5e",
+      "name": "2.2.4 Aplicar allowlist de teste",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        2640,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "863792f2-b596-4a96-9af6-5df06cd9012f",
+                    "leftValue": "={{ $json.tipo === 'texto' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "texto"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 3
+                },
+                "conditions": [
+                  {
+                    "id": "7fa72932-c148-4c27-a4c4-c4f991a6a295",
+                    "leftValue": "={{ ['audio', 'imagem', 'video', 'documento', 'localizacao', 'contato'].includes($json.tipo) }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "midia"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "da1ba202-def4-478c-992d-eeee71b1b76e",
+      "name": "2.3 Rotear por tipo",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.4,
+      "position": [
+        2860,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "2a12d816-644f-4447-b86e-d4ee059ebf5a",
+              "leftValue": "={{ $('CONFIG').first().json.MODO_TESTE === true && String($('CONFIG').first().json.ALLOWLIST ?? '').split(',').map(s => s.trim()).filter(Boolean).includes($json.telefone) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "b2f979dd-4e07-485f-b0ef-db5a686fe5d0",
+      "name": "2.2.5 Pular checagem (allowlist de teste)",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2640,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "8a6518eb-9a38-465e-808b-552df2e9e0a1",
+              "leftValue": "={{ !String($('CONFIG').first().json.CONTATOS_IGNORADOS ?? '').split(',').map(s => s.trim()).filter(Boolean).includes($json.telefone) }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "4df4774f-a04d-4f27-ab68-f0a98b02db92",
+      "name": "2.2.5 Ignorar contatos da lista",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        2860,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "13bd9bca-729a-4873-a8bd-95ded0fe1b1e",
+              "leftValue": "={{ String($json.telefone ?? '') !== '' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "96a1aff3-4744-44d7-99ea-3e88031f0865",
+      "name": "2.2.5 Tem telefone?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3080,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "Contacts",
+        "operation": "Get",
+        "session": "={{ $('CONFIG').first().json.WAHA_SESSION }}",
+        "contactId": "={{ $json.telefone }}@c.us",
+        "requestOptions": {}
+      },
+      "id": "091edf34-ffc5-4dc9-8609-b7354602056d",
+      "name": "2.2.5 Consultar contato",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        3300,
+        340
+      ],
+      "onError": "continueErrorOutput",
+      "credentials": {
+        "wahaApi": {
+          "id": "fLb4y6X1sdRn0lC8",
+          "name": "WAHA account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "bb28a1c6-6812-4a96-900e-cfa8e6f85195",
+              "leftValue": "={{ String($json.id ?? '').trim() !== '' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "67ff9b27-24aa-4669-b7b3-b230f035e4bc",
+      "name": "2.2.5 Consulta válida?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3520,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "1fbf0602-ed84-4ddb-abd3-c765c91f2590",
+              "leftValue": "={{ String($json.name ?? '').trim() === '' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "1ad2a0bd-962c-4b39-9269-8c29208f1ed1",
+      "name": "2.2.5 Número desconhecido?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3740,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ Object.assign({}, $('2.2.4 Aplicar allowlist de teste').first().json, { nomeContato: $('2.2.4 Aplicar allowlist de teste').first().json.nomeContato || $json.pushname || '' }) }}",
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "03ed2671-6912-44c7-9092-0f2e8aa9f01b",
+      "name": "2.2.5 Restaurar mensagem",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        3960,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "22375826-7f22-4d1f-9195-76e9b10b4144",
+              "name": "evento",
+              "value": "falha_consulta_contato",
+              "type": "string"
+            },
+            {
+              "id": "8940821c-1dab-4418-a1ad-9e11643c9307",
+              "name": "detalhe",
+              "value": "={{ String($('2.2.4 Aplicar allowlist de teste').first().json.telefone ?? '') === '' ? 'sem telefone (chat @lid sem remoteJidAlt)' : 'falha na consulta do contato (erro ou resposta sem id)' }}",
+              "type": "string"
+            },
+            {
+              "id": "6422356f-fb23-49d2-98ca-854eca6f3a43",
+              "name": "idMensagem",
+              "value": "={{ $('2.2.4 Aplicar allowlist de teste').first().json.idMensagem }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "a32c2fee-91ef-4873-93d2-885c8d60916d",
+      "name": "2.2.5 Log falha consulta contato",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        3520,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "propertyName": "marcaBot",
+        "key": "={{ 'bot-msg:' + String($('2.2.0 Restaurar mensagem').first().json.idMensagem).split('_').pop() }}",
+        "keyType": "string",
+        "options": {}
+      },
+      "id": "4b1f6a52-3c0e-4d7a-9a41-6e5c2f1d8a01",
+      "name": "3.1 Buscar marca de msg do bot",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        2420,
+        800
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "a7c3e1d4-52b8-4f69-8d10-3b9e6a2c7f02",
+              "leftValue": "={{ $('2.2.0 Restaurar mensagem').first().json.source !== 'api' && !$json.marcaBot }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "5c2a7b63-4d1f-4e8b-8b52-7f6d3a2e9b03",
+      "name": "3.1 Digitada pela atendente?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2640,
+        800
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "={{ 'pausa:' + $('2.2.0 Restaurar mensagem').first().json.chatId }}",
+        "value": "1",
+        "keyType": "string",
+        "expire": true,
+        "ttl": "={{ Math.max(1, Math.round($('CONFIG').first().json.PAUSA_HORAS * 3600)) }}"
+      },
+      "id": "6d3b8c74-5e20-4f9c-9c63-8a7e4b3f0a04",
+      "name": "3.1 Pausar chat",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        2860,
+        800
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "7e4c9d85-6f31-4a0d-8d74-9b8f5c4a1b05",
+      "name": "3.2 Mensagem do cliente",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        2420,
+        1000
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "propertyName": "pausa",
+        "key": "={{ 'pausa:' + $('3.2 Mensagem do cliente').first().json.chatId }}",
+        "keyType": "string",
+        "options": {}
+      },
+      "id": "8f5dae96-7042-4b1e-9e85-ac906d5b2c06",
+      "name": "3.2 Buscar pausa",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        2640,
+        1000
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ $('3.2 Mensagem do cliente').first().json }}",
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "90a6ebf7-8153-4c2f-8fa6-bda17c6c3d07",
+      "name": "3.2 Restaurar mensagem",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        2860,
+        1000
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b1d7f2a8-6264-4d3a-8a07-ceb28d7e4f08",
+              "leftValue": "={{ !!$('3.2 Buscar pausa').first().json.pausa }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a1b7fc08-9264-4d30-8b18-dfc39e8f5a09",
+      "name": "3.2 Chat pausado?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        3080,
+        1000
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ Object.assign({}, $json, { CONFIG: $('CONFIG').first().json, INSTRUCOES: $('INSTRUCOES').first().json }) }}",
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "a3ed8cbd-5ec9-40de-b8f6-346a292dcee7",
+      "name": "2.3 Entregar mensagem",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        3100,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "7d88b9a6-42dc-49c9-bf33-4a57d12144b7",
+              "leftValue": "={{ false }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "407e2c2d-c9f9-42ea-be42-877808e7d8c6",
+      "name": "2.9 Encerrar sem resposta",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        4160,
+        520
+      ]
+    }
+  ],
+  "connections": {
+    "2.1 Extrair mensagem": {
+      "main": [
+        [
+          {
+            "node": "2.1 Normalizar mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.1 Normalizar mensagem": {
+      "main": [
+        [
+          {
+            "node": "2.2.1 Ignorar grupos e canais",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.2.1 Ignorar grupos e canais": {
+      "main": [
+        [
+          {
+            "node": "2.2.0 Contar entrega",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.2.0 Contar entrega": {
+      "main": [
+        [
+          {
+            "node": "2.2.0 Manter primeira entrega",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.2.0 Manter primeira entrega": {
+      "main": [
+        [
+          {
+            "node": "2.2.0 Restaurar mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.2.0 Restaurar mensagem": {
+      "main": [
+        [
+          {
+            "node": "2.2.2 Enviada por mim?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.2.2 Enviada por mim?": {
+      "main": [
+        [
+          {
+            "node": "3.1 Buscar marca de msg do bot",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "2.2.3 Ignorar mensagens antigas",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.2.3 Ignorar mensagens antigas": {
+      "main": [
+        [
+          {
+            "node": "2.2.4 Aplicar allowlist de teste",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.2.4 Aplicar allowlist de teste": {
+      "main": [
+        [
+          {
+            "node": "2.2.5 Pular checagem (allowlist de teste)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.3 Rotear por tipo": {
+      "main": [
+        [
+          {
+            "node": "2.3 Entregar mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "2.3 Entregar mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.2.5 Pular checagem (allowlist de teste)": {
+      "main": [
+        [
+          {
+            "node": "3.2 Mensagem do cliente",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "2.2.5 Ignorar contatos da lista",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.2.5 Ignorar contatos da lista": {
+      "main": [
+        [
+          {
+            "node": "2.2.5 Tem telefone?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.2.5 Tem telefone?": {
+      "main": [
+        [
+          {
+            "node": "2.2.5 Consultar contato",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "2.2.5 Log falha consulta contato",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.2.5 Consultar contato": {
+      "main": [
+        [
+          {
+            "node": "2.2.5 Consulta válida?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "2.2.5 Log falha consulta contato",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.2.5 Consulta válida?": {
+      "main": [
+        [
+          {
+            "node": "2.2.5 Número desconhecido?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "2.2.5 Log falha consulta contato",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.2.5 Número desconhecido?": {
+      "main": [
+        [
+          {
+            "node": "2.2.5 Restaurar mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "2.9 Encerrar sem resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.2.5 Restaurar mensagem": {
+      "main": [
+        [
+          {
+            "node": "3.2 Mensagem do cliente",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3.1 Buscar marca de msg do bot": {
+      "main": [
+        [
+          {
+            "node": "3.1 Digitada pela atendente?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3.1 Digitada pela atendente?": {
+      "main": [
+        [
+          {
+            "node": "3.1 Pausar chat",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "2.9 Encerrar sem resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3.2 Mensagem do cliente": {
+      "main": [
+        [
+          {
+            "node": "3.2 Buscar pausa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3.2 Buscar pausa": {
+      "main": [
+        [
+          {
+            "node": "3.2 Restaurar mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3.2 Restaurar mensagem": {
+      "main": [
+        [
+          {
+            "node": "3.2 Chat pausado?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3.2 Chat pausado?": {
+      "main": [
+        [
+          {
+            "node": "2.9 Encerrar sem resposta",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "2.3 Rotear por tipo",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Receber do fluxo principal": {
+      "main": [
+        [
+          {
+            "node": "CONFIG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CONFIG": {
+      "main": [
+        [
+          {
+            "node": "INSTRUCOES",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INSTRUCOES": {
+      "main": [
+        [
+          {
+            "node": "2.0 Evento recebido",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.0 Evento recebido": {
+      "main": [
+        [
+          {
+            "node": "2.1 Extrair mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "2.2.5 Log falha consulta contato": {
+      "main": [
+        [
+          {
+            "node": "2.9 Encerrar sem resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3.1 Pausar chat": {
+      "main": [
+        [
+          {
+            "node": "2.9 Encerrar sem resposta",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "FF0x666oa1bfHLDI",
+    "binaryMode": "separate"
+  }
+}

@@ -1,0 +1,654 @@
+{
+  "name": "[chatbot] Divercity - Agrupar mensagens",
+  "id": "9tJm4MQCI1leSWEm",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "content": "## 0 Entrada — chamado pelo fluxo principal\nEntrada: item de texto vindo dos filtros (idMensagem, sessao, fromMe, source, chatId, timestamp, tipo, tipoLabel, texto, legenda, nomeContato, telefone, ehLid) + CONFIG e INSTRUCOES. Os nós CONFIG e INSTRUCOES daqui só repetem os valores do fluxo principal; edite-os lá.\nSaída: nenhum item (esta execução não é a última mensagem, ou o chat foi pausado) ou o mesmo item com texto = textos do buffer juntados, mais CONFIG e INSTRUCOES.",
+        "height": 240,
+        "width": 960,
+        "color": 7
+      },
+      "id": "4c7f61f7-f882-42f8-a796-7df3ff0af69b",
+      "name": "0 Nota Entrada do sub-workflow",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "content": "## 4 Agrupar mensagens — espera DEBOUNCE_SEGUNDOS, só a última mensagem segue\nGuarda cada texto no buffer do chat, espera e deixa só a última mensagem juntar os textos do buffer; o chat pausado nesse meio tempo (mídia) encerra em silêncio.",
+        "height": 420,
+        "width": 1840,
+        "color": 7
+      },
+      "id": "a4f10001-7c21-4b0e-9a11-0d4e5f6a7b01",
+      "name": "4 Nota Agrupar mensagens",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -80,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "id": "b5b5f453-2c69-4b27-ad90-dc21f0285f91",
+      "name": "Receber do fluxo principal",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ $json.CONFIG }}",
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "51714f52-68fd-4806-a52f-1218ec373c6d",
+      "name": "CONFIG",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        220,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ $('Receber do fluxo principal').first().json.INSTRUCOES }}",
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "f2cf34ea-9e61-4290-adad-abf7b55de106",
+      "name": "INSTRUCOES",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        440,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ Object.fromEntries(Object.entries($('Receber do fluxo principal').first().json).filter((e) => e[0] !== 'CONFIG' && e[0] !== 'INSTRUCOES')) }}",
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "8792092b-3ec0-49ad-b69a-d9e01a8b3150",
+      "name": "4.0 Mensagem recebida",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        660,
+        100
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "push",
+        "list": "={{ 'buf:' + $('4.0 Mensagem recebida').first().json.chatId }}",
+        "messageData": "={{ String($('4.0 Mensagem recebida').first().json.texto ?? '') }}",
+        "tail": true
+      },
+      "id": "a4f10002-7c21-4b0e-9a11-0d4e5f6a7b02",
+      "name": "4.1 Guardar texto no buffer",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        0,
+        440
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "={{ 'ultima:' + $('4.0 Mensagem recebida').first().json.chatId }}",
+        "value": "={{ $('4.0 Mensagem recebida').first().json.idMensagem }}",
+        "keyType": "string",
+        "expire": true,
+        "ttl": "={{ Math.max(1, Math.round($('CONFIG').first().json.MEMORIA_TTL_HORAS * 3600)) }}"
+      },
+      "id": "a4f10003-7c21-4b0e-9a11-0d4e5f6a7b03",
+      "name": "4.1 Marcar última mensagem",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        220,
+        440
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Send Seen",
+        "session": "={{ $('CONFIG').first().json.WAHA_SESSION }}",
+        "chatId": "={{ $('4.0 Mensagem recebida').first().json.chatId }}",
+        "messageId": "={{ $('4.0 Mensagem recebida').first().json.idMensagem }}",
+        "participant": "",
+        "requestOptions": {}
+      },
+      "id": "a4f10004-7c21-4b0e-9a11-0d4e5f6a7b04",
+      "name": "4.2 Marcar como vista",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        440,
+        440
+      ],
+      "credentials": {
+        "wahaApi": {
+          "id": "fLb4y6X1sdRn0lC8",
+          "name": "WAHA account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resource": "Chatting",
+        "operation": "Start Typing",
+        "session": "={{ $('CONFIG').first().json.WAHA_SESSION }}",
+        "chatId": "={{ $('4.0 Mensagem recebida').first().json.chatId }}",
+        "requestOptions": {}
+      },
+      "id": "a4f10005-7c21-4b0e-9a11-0d4e5f6a7b05",
+      "name": "4.2 Começar digitação",
+      "type": "@devlikeapro/n8n-nodes-waha.WAHA",
+      "typeVersion": 202502,
+      "position": [
+        660,
+        440
+      ],
+      "credentials": {
+        "wahaApi": {
+          "id": "fLb4y6X1sdRn0lC8",
+          "name": "WAHA account"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "resume": "timeInterval",
+        "amount": "={{ $('CONFIG').first().json.DEBOUNCE_SEGUNDOS }}",
+        "unit": "seconds"
+      },
+      "id": "a4f10006-7c21-4b0e-9a11-0d4e5f6a7b06",
+      "name": "4.3 Esperar debounce",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        440
+      ],
+      "webhookId": "a4f1000b-7c21-4b0e-9a11-0d4e5f6a7b0b"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "propertyName": "ultima",
+        "key": "={{ 'ultima:' + $('4.0 Mensagem recebida').first().json.chatId }}",
+        "keyType": "string",
+        "options": {}
+      },
+      "id": "a4f10007-7c21-4b0e-9a11-0d4e5f6a7b07",
+      "name": "4.4 Buscar última mensagem",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        440
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b4f10001-7c21-4b0e-9a11-0d4e5f6a7c01",
+              "leftValue": "={{ String($('4.4 Buscar última mensagem').first().json.ultima ?? '') === String($('4.0 Mensagem recebida').first().json.idMensagem ?? '') }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a4f10008-7c21-4b0e-9a11-0d4e5f6a7b08",
+      "name": "4.4 É a última mensagem?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        1320,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "propertyName": "pausa",
+        "key": "={{ 'pausa:' + $('4.0 Mensagem recebida').first().json.chatId }}",
+        "keyType": "string",
+        "options": {}
+      },
+      "id": "a4f10009-7c21-4b0e-9a11-0d4e5f6a7b09",
+      "name": "4.5 Buscar pausa de novo",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        0,
+        580
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b4f10002-7c21-4b0e-9a11-0d4e5f6a7c02",
+              "leftValue": "={{ !$('4.5 Buscar pausa de novo').first().json.pausa }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "a4f1000a-7c21-4b0e-9a11-0d4e5f6a7b0a",
+      "name": "4.5 Ainda sem pausa?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        220,
+        580
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "propertyName": "lista",
+        "key": "={{ 'buf:' + $('4.0 Mensagem recebida').first().json.chatId }}",
+        "keyType": "list",
+        "options": {}
+      },
+      "id": "a4f1000c-7c21-4b0e-9a11-0d4e5f6a7b0c",
+      "name": "4.5 Ler buffer",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        440,
+        580
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "={{ 'buf:' + $('4.0 Mensagem recebida').first().json.chatId }}"
+      },
+      "id": "a4f1000d-7c21-4b0e-9a11-0d4e5f6a7b0d",
+      "name": "4.5 Apagar buffer",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        660,
+        580
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ Object.assign({}, $('4.0 Mensagem recebida').first().json, { texto: (Array.isArray($('4.5 Ler buffer').first().json.lista) && $('4.5 Ler buffer').first().json.lista.length) ? $('4.5 Ler buffer').first().json.lista.join('\\n') : $('4.0 Mensagem recebida').first().json.texto }) }}",
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "a4f1000e-7c21-4b0e-9a11-0d4e5f6a7b0e",
+      "name": "4.5 Juntar textos",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        880,
+        580
+      ]
+    },
+    {
+      "parameters": {},
+      "id": "a4f1000f-7c21-4b0e-9a11-0d4e5f6a7b0f",
+      "name": "4.6 Texto pronto",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [
+        1100,
+        580
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ Object.assign({}, $json, { CONFIG: $('CONFIG').first().json, INSTRUCOES: $('INSTRUCOES').first().json }) }}",
+        "includeOtherFields": false,
+        "options": {}
+      },
+      "id": "1009977c-236e-4ac6-8a41-8ccc1697a8b7",
+      "name": "4.7 Entregar texto",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1320,
+        580
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "d7666ea5-ccc2-4730-946b-5bffb55fa6c1",
+              "leftValue": "={{ false }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "17dfe695-6d59-41dd-8da9-e45c33fcfd37",
+      "name": "4.9 Encerrar sem texto",
+      "type": "n8n-nodes-base.filter",
+      "typeVersion": 2.3,
+      "position": [
+        1540,
+        440
+      ]
+    }
+  ],
+  "connections": {
+    "4.1 Guardar texto no buffer": {
+      "main": [
+        [
+          {
+            "node": "4.1 Marcar última mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4.1 Marcar última mensagem": {
+      "main": [
+        [
+          {
+            "node": "4.2 Marcar como vista",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4.2 Marcar como vista": {
+      "main": [
+        [
+          {
+            "node": "4.2 Começar digitação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4.2 Começar digitação": {
+      "main": [
+        [
+          {
+            "node": "4.3 Esperar debounce",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4.3 Esperar debounce": {
+      "main": [
+        [
+          {
+            "node": "4.4 Buscar última mensagem",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4.4 Buscar última mensagem": {
+      "main": [
+        [
+          {
+            "node": "4.4 É a última mensagem?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4.4 É a última mensagem?": {
+      "main": [
+        [
+          {
+            "node": "4.5 Buscar pausa de novo",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "4.9 Encerrar sem texto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4.5 Buscar pausa de novo": {
+      "main": [
+        [
+          {
+            "node": "4.5 Ainda sem pausa?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4.5 Ainda sem pausa?": {
+      "main": [
+        [
+          {
+            "node": "4.5 Ler buffer",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "4.9 Encerrar sem texto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4.5 Ler buffer": {
+      "main": [
+        [
+          {
+            "node": "4.5 Apagar buffer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4.5 Apagar buffer": {
+      "main": [
+        [
+          {
+            "node": "4.5 Juntar textos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4.5 Juntar textos": {
+      "main": [
+        [
+          {
+            "node": "4.6 Texto pronto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4.6 Texto pronto": {
+      "main": [
+        [
+          {
+            "node": "4.7 Entregar texto",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Receber do fluxo principal": {
+      "main": [
+        [
+          {
+            "node": "CONFIG",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CONFIG": {
+      "main": [
+        [
+          {
+            "node": "INSTRUCOES",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "INSTRUCOES": {
+      "main": [
+        [
+          {
+            "node": "4.0 Mensagem recebida",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4.0 Mensagem recebida": {
+      "main": [
+        [
+          {
+            "node": "4.1 Guardar texto no buffer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "errorWorkflow": "FF0x666oa1bfHLDI",
+    "binaryMode": "separate"
+  }
+}

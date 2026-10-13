@@ -16,7 +16,7 @@ tests 18–25. Everything else is built and stays untouched.
 | Phase | Title                                                         | Role          | Depends on | Size | Status       |
 | ----- | ------------------------------------------------------------- | ------------- | ---------- | ---- | ------------ |
 | 1     | `FATOS_DO_PARQUE` default text (section 1.3)                  | n8n-workflows | none       | S    | DONE         |
-| 2     | `PERSONA_E_REGRAS` default text: closing confirmation (5.1)   | n8n-workflows | none       | S    | PENDING      |
+| 2     | `PERSONA_E_REGRAS` default text: closing confirmation (5.1)   | n8n-workflows | none       | S    | DONE         |
 | 3     | Apply the new texts to the live Data Table row                | n8n-workflows | 1, 2       | S    | PENDING      |
 | 4     | Verification and report                                       | n8n-workflows | 1–3        | S    | PENDING      |
 
@@ -119,7 +119,8 @@ PREÇOS E HORÁRIOS: só valem os das ferramentas consultar_passaportes e consul
 
 ### Phase 2 — `PERSONA_E_REGRAS` default text: closing confirmation (section 5.1)
 
-Status: PENDING
+Status: DONE
+Evidence: extracted `PERSONA_E_REGRAS` diffed against the precomputed contract text → exact match (only rule 4 append, new `ENCERRAMENTO` section, rewritten `"continua"`/`"resolvido"` bullets); each status bullet appears once; JSON-only output rule intact; `jq empty workflows/*.json` OK; `docker compose config -q` OK; secrets grep → no hits; `git diff --stat -- workflows/` → only the installer, 1+/1-; code-reviewer APPROVED (AC 10, 18–21, 24). Non-blocking: "O QUE VOCÊ FAZ" lists rule 4 as the only handoff case and does not mention the ENCERRAMENTO "NÃO resolveu" → humano exception.
 Role: n8n-workflows · Depends on: none · Covers: AC 10, 18, 19, 20, 21, 24 · Size: S
 Spec: 5.1, 6 (status values), 11 (item b, c)
 

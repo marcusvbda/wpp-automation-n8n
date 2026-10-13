@@ -15,13 +15,14 @@ ACs 18–21 rewritten, 26–32 new). Everything else stays untouched.
 
 | Phase | Title                                                               | Role          | Depends on | Size | Status  |
 | ----- | ------------------------------------------------------------------- | ------------- | ---------- | ---- | ------- |
-| 1     | Installer defaults: new persona closing rules + two new columns     | n8n-workflows | none       | S    | DONE |
-| 2     | Agent parser passes `aguarda_cliente`                               | n8n-workflows | none       | S    | DONE |
-| 3     | New subworkflow `[chatbot] Divercity - Confirmação`                 | n8n-workflows | none       | S    | DONE |
-| 4     | Wire the timer: start after `continua`, cancel on customer message  | n8n-workflows | 2, 3       | S    | DONE |
-| 5     | Deploy the workflow changes to the live n8n (feature still inert)   | n8n-workflows | 2, 3, 4    | S    | DONE |
-| 6     | Live Data Tables: add columns, set values, new persona (feature on) | n8n-workflows | 1, 5       | S    | DONE |
-| 7     | Verification and report                                             | n8n-workflows | 1–6        | S    | PENDING |
+| 1     | Installer defaults: new persona closing rules + two new columns     | n8n-workflows | none       | S    | DONE    |
+| 2     | Agent parser passes `aguarda_cliente`                               | n8n-workflows | none       | S    | DONE    |
+| 3     | New subworkflow `[chatbot] Divercity - Confirmação`                 | n8n-workflows | none       | S    | DONE    |
+| 4     | Wire the timer: start after `continua`, cancel on customer message  | n8n-workflows | 2, 3       | S    | DONE    |
+| 5     | Deploy the workflow changes to the live n8n (feature still inert)   | n8n-workflows | 2, 3, 4    | S    | DONE    |
+| 6     | Live Data Tables: add columns, set values, new persona (feature on) | n8n-workflows | 1, 5       | S    | DONE    |
+| 7     | Verification and report                                             | n8n-workflows | 1–6, 8     | S    | BLOCKED |
+| 8     | Fix: reliable `aguarda_cliente` + token from WAHA `key.id`          | n8n-workflows | 1–6        | S    | DONE        |
 
 ## Audit — 2026-10-13
 
@@ -83,7 +84,7 @@ Blocks: nothing. Unchanged by this plan; the current defaults stay (bot does not
 | 19 "sim, resolvido" after `MSG_CONFIRMACAO` → `resolvido`, `conv` deleted, no pause, new conversation | 1, 3, 6, 7 |
 | 20 "não resolveu" after `MSG_CONFIRMACAO` → `humano`, pause, group notice | 1, 3, 6, 7 |
 | 21 other question after `MSG_CONFIRMACAO` → answered, timer restarts, sent again after silence | 1, 3, 4, 6, 7 |
-| 26 silence after a price answer → `MSG_CONFIRMACAO` once, chat not paused | 3, 4, 5, 6, 7 |
+| 26 silence after a price answer → `MSG_CONFIRMACAO` once, chat not paused | 3, 4, 5, 6, 7, 8 |
 | 27 customer writes before the interval → no `MSG_CONFIRMACAO` for that reply | 3, 4, 7 |
 | 28 bot asked "Qual o dia da visita?" (`aguarda_cliente = true`) → nothing sent | 1, 2, 4, 7 |
 | 29 no answer to `MSG_CONFIRMACAO` → nothing else sent; new conversation after `MEMORIA_TTL_HORAS` | 3, 7 |
@@ -333,8 +334,8 @@ Spec: 1.1, 1.2, 5.1, 11 (Data Tables deviation)
 
 ### Phase 7 — Verification and report
 
-Status: PENDING
-Role: n8n-workflows · Depends on: 1–6 · Covers: all ACs in the table · Size: S
+Status: BLOCKED — live test 1 (2026-10-13, reply execution `493`) failed AC 26: the price answer came back with `aguarda_cliente: true`, so `7.1 Agendar confirmação?` went to the false branch and no confirmation was armed (no `confirmar:` key, no `Confirmação` execution). Second finding in the same execution: the WAHA Send Text output has no top-level `id` (the id is at `key.id`), so the token is `''` (and every `bot-msg:` key written by `7.1`/`7.2`/`7.3`/`8.3 Registrar msg do bot` is the literal `bot-msg:`). Fix in Phase 8; re-run this phase after it. AC 18 (no closing question in the reply) passed in the same test.
+Role: n8n-workflows · Depends on: 1–6, 8 · Covers: all ACs in the table · Size: S
 Spec: 5.1, 9
 
 **Goal.** Prove the ACs live with the test number, then report.
@@ -358,3 +359,47 @@ Spec: 5.1, 9
   checklist (restore test values, set `MODO_TESTE` when going live), and anything left open.
 
 **Not in this phase.** Fixes (a new phase is added if something fails), production rollout.
+
+### Phase 8 — Fix: reliable `aguarda_cliente` + token from WAHA `key.id`
+
+Status: DONE
+Evidence: 2026-10-13, owner approved both live writes in-session. Repo: persona `aguarda_cliente` bullet + extra forbidden ending (install), token `id ?? key.id` in `7.1 Armar`/`7.1 Montar` + 4th IF condition token non-empty (reply), `8.3 Registrar msg do bot` (confirm). Correction round 1 (after live retest, reply execution `500`: the model still returned `aguarda_cliente: true` for a complete price answer): `6.1 Interpretar resposta` now overrides an explicit `true` to `false` when the reply does not end with `?` (trailing whitespace/emoji stripped with `\p{Extended_Pictographic}\p{Variation_Selector}\p{Join_Control}`); explicit false and missing unchanged. Node run of 7 sample outputs: all PASS. code-reviewer: APPROVED (both rounds). Live: pre-check live = HEAD for reply, confirm, agent and persona; reply, confirm and agent updated with n8n-mcp partial updates (published, active), persona written after a dryRun matching one row; published graphs of reply, confirm and agent equal the repo; live persona equals the new default. Owner's test chat conversation reset (its `conv:`, `ultima:` and memory list only), with the owner's OK. Live test 1 (owner, 18:42): reply without closing question, `aguarda_cliente: false`, `confirmar:` armed with a non-empty token, Confirmação execution `545` waited 3 min and sent `MSG_CONFIRMACAO` once, which landed in the agent memory in the right order. `jq empty`, `docker compose config -q` OK. Deviation to propose for spec 6: `aguarda_cliente: true` only stands when the reply ends with a question.
+Role: n8n-workflows · Depends on: 1–6 · Covers: AC 26, 27, 21 (unblocks Phase 7) · Size: S
+Spec: 5.1 rules 2–5, 6 (`aguarda_cliente`)
+
+**Goal.** A complete answer (price, hours, address...) reliably yields `aguarda_cliente = false`, and each bot reply
+arms the timer with a non-empty, unique token, so the confirmation is sent once, counted from the latest reply.
+
+**Contract.**
+
+- Persona (installer default in `workflows/chatbot-waha-divercity-install.json`, then the live row): in
+  `STATUS E FORMATO DE SAÍDA`, replace the `"aguarda_cliente"` bullet (3 lines) with:
+
+```text
+- "aguarda_cliente": false sempre que a sua resposta já traz o que o cliente pediu (preço, horário, endereço,
+  atrações...), mesmo que termine com uma frase gentil. true só quando você precisa de uma resposta do cliente
+  para continuar (perguntou o dia da visita, a duração...) ou ainda não sabe o que ele quer (cumprimentos como
+  "Como posso ajudar?").
+```
+
+  and in `ENCERRAMENTO`, first bullet, extend the list of forbidden endings to
+  `("Isso resolve a sua dúvida?", "Resolveu?", "Posso ajudar em algo mais?", "Se precisar de mais informações, é só avisar" ou parecido)`
+  (the fixed `MSG_CONFIRMACAO` already says it). Everything else in the persona byte-identical.
+- Token: wherever a sent message id is read from the WAHA Send Text output, use
+  `const r = j.id ?? j.key?.id;` (keep the existing `_serialized`/`.id` normalization and `split('_').pop()`), in:
+  `7.1 Armar confirmação` (value), `7.1 Montar dados da confirmação` (token) and `8.3 Registrar msg do bot` (key).
+  `7.1 Agendar confirmação?` gets a 4th condition: token non-empty.
+- Pre-existing, same root cause, **report only** unless the owner widens scope: `7.1`, `7.2`, `7.3 Registrar msg do bot`
+  also write `bot-msg:` with an empty id. Attendant detection still works through `source !== 'api'` (AC 13 confirmed live).
+- Deploy as in Phase 5 (pre-check live = HEAD, then n8n-mcp partial update; reply and confirm subs; publish), and write
+  the live `PERSONA_E_REGRAS` as in Phase 6 (pre-check live = Phase 1 default, `dryRun`, then apply). Owner approval
+  in-session for both live writes.
+
+**Done when.**
+
+- Files valid (`jq empty`, `docker compose config -q`); code-reviewer APPROVED; live published graphs equal HEAD; live
+  persona equals the new default.
+- Owner repeats live test 1: the reply execution shows `aguarda_cliente: false`, a `confirmar:{chatId}` key with a
+  non-empty value exists, and a `Confirmação` execution is waiting.
+
+**Not in this phase.** Running the rest of the Phase 7 script; changing `CONFIRMACAO_MINUTOS`.

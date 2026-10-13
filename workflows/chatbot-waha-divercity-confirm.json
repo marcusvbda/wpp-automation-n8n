@@ -258,7 +258,7 @@
     {
       "parameters": {
         "operation": "set",
-        "key": "={{ 'bot-msg:' + String((() => { const r = $json.id; return typeof r === 'string' ? r : (r?._serialized ?? r?.id ?? ''); })()).split('_').pop() }}",
+        "key": "={{ 'bot-msg:' + String((() => { const r = $json.id ?? $json.key?.id; return typeof r === 'string' ? r : (r?._serialized ?? r?.id ?? ''); })()).split('_').pop() }}",
         "value": "1",
         "keyType": "string",
         "expire": true,

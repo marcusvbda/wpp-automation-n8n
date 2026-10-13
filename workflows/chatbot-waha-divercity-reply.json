@@ -952,6 +952,16 @@
                 "operation": "true",
                 "singleValue": true
               }
+            },
+            {
+              "id": "b7c1a4e2-5d31-4f0a-9a6e-1c2d3e4f5a04",
+              "leftValue": "={{ String((() => { const r = $('7.1 Enviar resposta').first().json.id ?? $('7.1 Enviar resposta').first().json.key?.id; return typeof r === 'string' ? r : (r?._serialized ?? r?.id ?? ''); })()).split('_').pop() !== '' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
             }
           ],
           "combinator": "and"
@@ -971,7 +981,7 @@
       "parameters": {
         "operation": "set",
         "key": "={{ 'confirmar:' + $('7.0 Dados recebidos').first().json.chatId }}",
-        "value": "={{ String((() => { const r = $('7.1 Enviar resposta').first().json.id; return typeof r === 'string' ? r : (r?._serialized ?? r?.id ?? ''); })()).split('_').pop() }}",
+        "value": "={{ String((() => { const r = $('7.1 Enviar resposta').first().json.id ?? $('7.1 Enviar resposta').first().json.key?.id; return typeof r === 'string' ? r : (r?._serialized ?? r?.id ?? ''); })()).split('_').pop() }}",
         "keyType": "string",
         "expire": true,
         "ttl": "={{ Math.round(Number($('CONFIG').first().json.CONFIRMACAO_MINUTOS) * 60) + 300 }}"
@@ -994,7 +1004,7 @@
     {
       "parameters": {
         "mode": "raw",
-        "jsonOutput": "={{ { chatId: $('7.0 Dados recebidos').first().json.chatId, token: String((() => { const r = $('7.1 Enviar resposta').first().json.id; return typeof r === 'string' ? r : (r?._serialized ?? r?.id ?? ''); })()).split('_').pop(), CONFIG: $('CONFIG').first().json, INSTRUCOES: $('INSTRUCOES').first().json } }}",
+        "jsonOutput": "={{ { chatId: $('7.0 Dados recebidos').first().json.chatId, token: String((() => { const r = $('7.1 Enviar resposta').first().json.id ?? $('7.1 Enviar resposta').first().json.key?.id; return typeof r === 'string' ? r : (r?._serialized ?? r?.id ?? ''); })()).split('_').pop(), CONFIG: $('CONFIG').first().json, INSTRUCOES: $('INSTRUCOES').first().json } }}",
         "options": {}
       },
       "id": "c3d9e5f1-7a42-4b68-8e10-2f3a4b5c6d13",

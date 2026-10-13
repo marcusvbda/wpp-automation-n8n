@@ -1,56 +1,8 @@
 {
-  "name": "[chatbot] Divercity - Agente",
   "id": "T36H0vXQgPRsPGNe",
+  "name": "[chatbot] Divercity - Agente",
   "active": false,
   "nodes": [
-    {
-      "parameters": {
-        "content": "## 0 Entrada — chamado pelo fluxo principal\nEntrada: item de texto já agrupado (chatId, texto, nomeContato, telefone, ehLid, sessao…) + CONFIG e INSTRUCOES. Os nós CONFIG e INSTRUCOES daqui só repetem os valores do fluxo principal; edite-os lá.\nSaída: sempre um item { output: { resposta, status, motivo, resumo }, chatId, telefone, nomeContato, ehLid, sessao, textoCliente, CONFIG, INSTRUCOES }. Falha do agente sai com status vazio, e o bloco de resposta faz o handoff.",
-        "height": 240,
-        "width": 960,
-        "color": 7
-      },
-      "id": "08cf3a40-b08d-4934-85ef-a7f9968b0308",
-      "name": "0 Nota Entrada do sub-workflow",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        -80,
-        0
-      ]
-    },
-    {
-      "parameters": {
-        "content": "## 5 Conversa e contexto — id da conversa com TTL deslizante e calendário que o modelo lê\nReaproveita ou cria o id da conversa (TTL renovado a cada mensagem) e monta a mensagem de sistema com instruções, avisos, data/hora de agora e calendário dos próximos dias.",
-        "height": 420,
-        "width": 1300,
-        "color": 7
-      },
-      "id": "a5f10001-7c21-4b0e-9a11-0d4e5f6a7b01",
-      "name": "5 Nota Conversa e contexto",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        -80,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "content": "## 6 Agente — responde preço e horário pela API do site e decide o status\nO agente consulta preços e horários nas ferramentas HTTP, responde ao cliente e devolve resposta, status (continua, resolvido ou humano), motivo e resumo; o status roteia para resposta, encerramento ou handoff.",
-        "height": 520,
-        "width": 760,
-        "color": 7
-      },
-      "name": "6 Nota Agente",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        1280,
-        300
-      ],
-      "id": "16d3830b-42d3-465f-ae4b-00ba7fe0edee"
-    },
     {
       "parameters": {
         "inputSource": "passthrough"
@@ -61,14 +13,13 @@
       "typeVersion": 1.1,
       "position": [
         0,
-        100
+        192
       ]
     },
     {
       "parameters": {
         "mode": "raw",
         "jsonOutput": "={{ $json.CONFIG }}",
-        "includeOtherFields": false,
         "options": {}
       },
       "id": "bc579fd8-a923-4d0a-9b0d-bc3682fd1d25",
@@ -76,15 +27,14 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        220,
-        100
+        224,
+        192
       ]
     },
     {
       "parameters": {
         "mode": "raw",
         "jsonOutput": "={{ $('Receber do fluxo principal').first().json.INSTRUCOES }}",
-        "includeOtherFields": false,
         "options": {}
       },
       "id": "738f0776-4eaa-482d-b626-f4cae34b8dc9",
@@ -92,15 +42,14 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        440,
-        100
+        448,
+        192
       ]
     },
     {
       "parameters": {
         "mode": "raw",
         "jsonOutput": "={{ Object.fromEntries(Object.entries($('Receber do fluxo principal').first().json).filter((e) => e[0] !== 'CONFIG' && e[0] !== 'INSTRUCOES')) }}",
-        "includeOtherFields": false,
         "options": {}
       },
       "id": "6ea2d14b-a8e0-411f-8b5c-2d29bff6ae24",
@@ -108,8 +57,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        660,
-        100
+        672,
+        192
       ]
     },
     {
@@ -125,8 +74,8 @@
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
       "position": [
-        0,
-        440
+        896,
+        192
       ],
       "credentials": {
         "redis": {
@@ -139,7 +88,6 @@
       "parameters": {
         "mode": "raw",
         "jsonOutput": "={{ Object.assign({}, $('5.0 Texto recebido').first().json, { conversaId: String($('5.1 Buscar conversa').first().json.conversaExistente ?? '').trim() || ($now.toMillis() + '-' + $execution.id) }) }}",
-        "includeOtherFields": false,
         "options": {}
       },
       "id": "a5f10003-7c21-4b0e-9a11-0d4e5f6a7b03",
@@ -147,8 +95,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        220,
-        440
+        1120,
+        192
       ]
     },
     {
@@ -165,8 +113,8 @@
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
       "position": [
-        440,
-        440
+        1344,
+        192
       ],
       "credentials": {
         "redis": {
@@ -177,8 +125,6 @@
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
-        "language": "javaScript",
         "jsCode": "// Monta o contexto do modelo: id da conversa, data/hora de agora e calendário (função pura, sem rede)\nconst A = $('5.1 Definir id da conversa').first().json;\nconst cfg = $('CONFIG').first().json;\nconst instr = $('INSTRUCOES').first().json;\n\nconst DIAS = ['domingo', 'segunda-feira', 'terça-feira', 'quarta-feira', 'quinta-feira', 'sexta-feira', 'sábado'];\nconst pad = (n) => String(n).padStart(2, '0');\n\n// Tudo é calculado em função de \"agora\" (Date) e do fuso da CONFIG, nunca do fuso do container\nfunction montarContexto(agora, item, config, instrucoes) {\n  const tz = config.TIMEZONE || 'America/Sao_Paulo';\n  const partes = {};\n  new Intl.DateTimeFormat('en-US', {\n    timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',\n    hour: '2-digit', minute: '2-digit', hourCycle: 'h23',\n  }).formatToParts(agora).forEach((p) => { partes[p.type] = p.value; });\n  const ano = Number(partes.year);\n  const mes = Number(partes.month);\n  const dia = Number(partes.day);\n\n  // dia da semana de uma data (só Y-M-D), via UTC: sem depender de fuso nem de horário de verão\n  const hoje = Date.UTC(ano, mes - 1, dia);\n  const agoraTxt = `AGORA: ${DIAS[new Date(hoje).getUTCDay()]}, ${pad(dia)}/${pad(mes)}/${ano}, ${partes.hour}:${partes.minute} (horário de Brasília)`;\n\n  const feriados = new Set(String(instrucoes.FERIADOS ?? '').split(',').map((s) => s.trim()).filter(Boolean));\n  const total = Math.max(1, Math.floor(Number(config.DIAS_CALENDARIO) || 1));\n  const linhas = [];\n  for (let i = 0; i < total; i++) {\n    const d = new Date(hoje + i * 86400000); // soma de dias na data pura (UTC), sem DST\n    const iso = d.toISOString().slice(0, 10);\n    const dow = d.getUTCDay();\n    const feriado = feriados.has(iso);\n    const fimDeSemana = feriado || dow === 5 || dow === 6 || dow === 0;\n    const preco = fimDeSemana ? 'sexta-a-domingo/feriado (weekendPrice)' : 'segunda-a-quinta (weekdayPrice)';\n    const horario = (feriado || dow === 0) ? 'domingos e feriados (sundays_holidays)' : 'segunda-a-sábado (weekdays)';\n    linhas.push(`${iso} ${DIAS[dow]}${feriado ? ' | FERIADO' : ''} | preço: ${preco} | horário: ${horario}`);\n  }\n\n  const mensagemSistema = instrucoes.PERSONA_E_REGRAS\n    + '\\n\\nFATOS DO PARQUE\\n' + instrucoes.FATOS_DO_PARQUE\n    + '\\n\\nAVISOS DE HOJE\\n' + (instrucoes.AVISOS_DE_HOJE || '(nenhum)')\n    + '\\n\\n' + agoraTxt\n    + '\\n\\nCALENDÁRIO\\n' + linhas.join('\\n');\n\n  return Object.assign({}, item, {\n    sessionKey: `${item.chatId}:${item.conversaId}`,\n    textoCliente: item.texto,\n    mensagemSistema,\n  });\n}\n\nreturn [{ json: montarContexto(new Date(), A, cfg, instr) }];\n"
       },
       "id": "a5f10005-7c21-4b0e-9a11-0d4e5f6a7b05",
@@ -186,8 +132,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        660,
-        440
+        1568,
+        192
       ]
     },
     {
@@ -197,15 +143,14 @@
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
       "position": [
-        880,
-        440
+        1792,
+        192
       ]
     },
     {
       "parameters": {
         "promptType": "define",
         "text": "={{ $json.textoCliente }}",
-        "hasOutputParser": false,
         "options": {
           "systemMessage": "={{ $json.mensagemSistema }}"
         }
@@ -214,16 +159,14 @@
       "type": "@n8n/n8n-nodes-langchain.agent",
       "typeVersion": 3.1,
       "position": [
-        1400,
-        440
+        2144,
+        192
       ],
-      "onError": "continueErrorOutput",
-      "id": "bc942786-44d3-45fb-a0c5-2feebbf6e0ca"
+      "id": "bc942786-44d3-45fb-a0c5-2feebbf6e0ca",
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
-        "language": "javaScript",
         "jsCode": "// Interpreta a resposta do agente (JSON ou texto livre) e entrega { output: { resposta, status, motivo, resumo } }\nconst STATUS = ['continua', 'resolvido', 'humano'];\nconst VAZIO = { resposta: '', status: '', motivo: '', resumo: [] };\nconst interpretar = (bruto) => {\n  let obj = bruto && typeof bruto === 'object' ? bruto : null;\n  const texto = obj ? '' : String(bruto ?? '').trim();\n  if (!obj) {\n    // pega do primeiro { ao último }, ignorando cerca ```json e texto em volta\n    const ini = texto.indexOf('{'), fim = texto.lastIndexOf('}');\n    if (ini >= 0 && fim > ini) { try { obj = JSON.parse(texto.slice(ini, fim + 1)); } catch (e) { obj = null; } }\n  }\n  // desembrulha {output: {...}} (objeto ou texto)\n  if (obj && obj.status === undefined && obj.output !== undefined) return interpretar(obj.output);\n  if (obj) {\n    const resposta = String(obj.resposta ?? '').trim();\n    const status = String(obj.status ?? '').trim();\n    if (!resposta || !STATUS.includes(status)) return VAZIO;\n    const resumo = Array.isArray(obj.resumo) ? obj.resumo.map(String).slice(0, 3) : [];\n    return { resposta, status, motivo: String(obj.motivo ?? ''), resumo };\n  }\n  // JSON quebrado não vai para o cliente: cai na falha técnica (handoff)\n  if (!texto || /\"(resposta|status)\"\\s*:/.test(texto)) return VAZIO;\n  // texto simples: resposta de conversa\n  return { resposta: texto, status: 'continua', motivo: '', resumo: [] };\n};\nreturn $input.all().map((item) => ({ json: { output: interpretar(item.json.output) } }));"
       },
       "id": "b36f7c5c-2565-4d17-9652-7596b79b3c5b",
@@ -231,8 +174,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1530,
-        440
+        2608,
+        112
       ]
     },
     {
@@ -242,6 +185,7 @@
           "value": "={{ $('CONFIG').first().json.OPENAI_MODEL }}",
           "mode": "id"
         },
+        "builtInTools": {},
         "options": {
           "temperature": "={{ $('CONFIG').first().json.TEMPERATURA }}"
         }
@@ -250,16 +194,16 @@
       "type": "@n8n/n8n-nodes-langchain.lmChatOpenAi",
       "typeVersion": 1.3,
       "position": [
-        1340,
-        660
+        2024,
+        408
       ],
+      "id": "099371cd-b19c-46a9-8de6-8ee901707905",
       "credentials": {
         "openAiApi": {
           "id": "KFZp3oDrOgr20VBL",
           "name": "OpenAI account"
         }
-      },
-      "id": "099371cd-b19c-46a9-8de6-8ee901707905"
+      }
     },
     {
       "parameters": {
@@ -272,21 +216,20 @@
       "type": "@n8n/n8n-nodes-langchain.memoryRedisChat",
       "typeVersion": 1.6,
       "position": [
-        1480,
-        660
+        2152,
+        408
       ],
+      "id": "b8b01c8f-0bb6-4ec7-8dce-1548624bc867",
       "credentials": {
         "redis": {
           "id": "rD7k2Mx9QpL4vWn3",
           "name": "Redis account"
         }
-      },
-      "id": "b8b01c8f-0bb6-4ec7-8dce-1548624bc867"
+      }
     },
     {
       "parameters": {
         "toolDescription": "Lista os preços de passaporte (criança e acompanhante, por duração). weekdayPrice = segunda a quinta; weekendPrice = sexta a domingo e feriados. Linhas com key terminando em `_child` = criança, `_companion` = acompanhante.",
-        "method": "GET",
         "url": "={{ $('CONFIG').first().json.API_BASE_URL }}{{ $('CONFIG').first().json.PATH_PRECOS }}?type=passaportes&perPage=100",
         "sendHeaders": true,
         "headerParameters": {
@@ -308,17 +251,16 @@
       "name": "consultar_passaportes",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.5,
-      "onError": "continueRegularOutput",
       "position": [
-        1760,
-        660
+        2280,
+        408
       ],
-      "id": "0aacbef3-c22f-4c7e-8ebe-e149d996fb18"
+      "id": "0aacbef3-c22f-4c7e-8ebe-e149d996fb18",
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
         "toolDescription": "Lista os horários de funcionamento. Use a chave (key): weekdays = segunda a sábado; sundays_holidays = domingos e feriados. Nunca decida pelo label.",
-        "method": "GET",
         "url": "={{ $('CONFIG').first().json.API_BASE_URL }}{{ $('CONFIG').first().json.PATH_HORARIOS }}?perPage=100",
         "sendHeaders": true,
         "headerParameters": {
@@ -340,18 +282,17 @@
       "name": "consultar_horarios",
       "type": "n8n-nodes-base.httpRequestTool",
       "typeVersion": 4.5,
-      "onError": "continueRegularOutput",
       "position": [
-        1900,
-        660
+        2408,
+        408
       ],
-      "id": "547a932e-3a23-4d50-bfa8-9695241b7828"
+      "id": "547a932e-3a23-4d50-bfa8-9695241b7828",
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
         "mode": "raw",
         "jsonOutput": "={{ { output: $json.output ?? { resposta: '', status: '', motivo: '', resumo: [] }, chatId: $('5.3 Contexto pronto').first().json.chatId, telefone: $('5.3 Contexto pronto').first().json.telefone, nomeContato: $('5.3 Contexto pronto').first().json.nomeContato, ehLid: $('5.3 Contexto pronto').first().json.ehLid, sessao: $('5.3 Contexto pronto').first().json.sessao, textoCliente: $('5.3 Contexto pronto').first().json.textoCliente, CONFIG: $('CONFIG').first().json, INSTRUCOES: $('INSTRUCOES').first().json } }}",
-        "includeOtherFields": false,
         "options": {}
       },
       "id": "4805f250-c2e0-48e2-a137-75297d02468b",
@@ -359,8 +300,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        1660,
-        440
+        2832,
+        192
       ]
     }
   ],
@@ -541,6 +482,7 @@
   "settings": {
     "executionOrder": "v1",
     "errorWorkflow": "FF0x666oa1bfHLDI",
-    "binaryMode": "separate"
+    "binaryMode": "separate",
+    "availableInMCP": true
   }
 }

@@ -20,7 +20,7 @@ session. Phase status is updated in place in this file.
 | 9     | Agent, tools, status routing to handoff                | n8n-workflows | 6, 8       | M    | DONE    |
 | 10    | Reply and close paths (`continua`, `resolvido`)        | n8n-workflows | 9          | S    | DONE    |
 | 11    | Hook routing, import and publish in test mode          | n8n-workflows | 2–10       | S    | DONE    |
-| 12    | Verification and report                                | n8n-workflows | 1–11       | M    | PENDING |
+| 12    | Verification and report                                | n8n-workflows | 1–11       | M    | DONE    |
 
 ## Audit — 2026-10-12
 
@@ -560,7 +560,11 @@ Spec: 2.1, 10
 
 ### Phase 12 — Verification and report
 
-Status: PENDING
+Status: DONE (owner closed the work on 2026-10-13; the live walkthrough of AC 1–17 was partial, see below)
+Evidence: gate: `jq empty workflows/*.json`, `docker compose config -q`, `bash -n scripts/setup.sh` pass; secrets/PII grep clean (`COLE_O_TOKEN_AQUI` once, in the main workflow; `ALLOWLIST`, `CONTATOS_IGNORADOS`, `GRUPO_ATENDIMENTO_ID` empty; no `pinData`; no `dvc_` token, no real phone or group id). Final `code-reviewer` over the full diff: APPROVED, no blocking findings (AC table: every AC has an implementing node). The workflow was split into 5 workflows at the owner's request and re-exported from n8n with the token-safety reset (repo files = what is in n8n, minus secrets and test values: the n8n copy had `DEBOUNCE_SEGUNDOS = 1` and `PAUSA_HORAS = 0.001` while testing, the repo keeps `5` and `12`). End-to-end run after the split on the test chat: executions 261–265 (main → Filtros → Agrupar mensagens → Agente → Resposta e handoff), all `success`, about 5 s with a 1 s debounce.
+Live results (owner's allowlisted test number, 2026-10-12/13): AC 2 PASS (12/10 holiday → `weekendPrice`, 12h–20h, prices match the API); AC 13 PASS for the bot's own messages (no pause from `fromMe` echoes); AC 12 PASS for the group notice and the pause; AC 5/15 paths exercised by a handoff (parser failure and `falha técnica`), fixed afterwards. Not live-tested: AC 1 (ask the day) after the final persona, 3, 4, 5 (party), 6 (media, sticker, text+audio), 7/8 (saved vs unsaved contact), 9, 10 (`resolvido`), 11 (TTL), 14 (burst), 15 (wrong token, API down), 16, 17, and AC 13 for a message typed on the phone.
+Open for the owner (manual): restore `DEBOUNCE_SEGUNDOS = 5` and `PAUSA_HORAS = 12` in the n8n `CONFIG` if the test values are still there; fill `FATOS_DO_PARQUE` (no `[PREENCHER]`); add the city's local holidays to `FERIADOS`; set `MODO_TESTE = false` only after sign-off; revoke the test `SITE_API_TOKEN` that was pasted in the chat; back up `N8N_ENCRYPTION_KEY` and schedule Postgres backups. Known non-blocking findings: `buf:` has no TTL and `3.1 Pausar chat` does not clear it (stale text can be joined into the first message after a pause); a failed Send Text on `7.x` goes to the error workflow with no reply to the client; the error workflow can fire twice for a failure inside a sub-workflow; leftover `/tmp/dv-*.json` and `/tmp/divercity-*.json` files in the n8n container contain the pasted values (removal denied; they go away when the container is recreated).
+Deviations (all recorded as `Deviation:` notes in `spec.md` section 11): 5 workflows instead of one; `name` instead of `isMyContact`; `chatId` for `@lid` chats; `entrega:` dedupe and `bot-msg:` on every send; media gets only `MSG_MIDIA`; HTTP Request Tool 4.5 and no Structured Output Parser; conversational persona; `WAHA_SESSION = Default`; `.first()`; all-Portuguese identifiers (an exception to the `CLAUDE.md` English rule).
 Role: n8n-workflows (+ `qa-tester`, then `code-reviewer`) · Depends on: 1–11 · Covers: all ACs · Size: M
 Spec: 9, 8, 10
 

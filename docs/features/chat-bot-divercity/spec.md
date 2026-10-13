@@ -234,6 +234,28 @@ Formatar o telefone a partir do `chatId` (remover o sufixo, aplicar `+55 DD NNNN
 - WAHA: **definir o engine depois do teste do `isMyContact`** (seção 2). NOWEB/GOWS consomem menos RAM que o WEBJS, que sobe Chromium. Volume persistente na sessão, e a mesma sessão configurada em `WAHA_SESSION`.
 - Guardar `N8N_ENCRYPTION_KEY` e agendar backup do Postgres.
 
+## 11. Desvios da implementação (estado real em 2026-10-13)
+
+Notas `Deviation:` pedidas pelo dono. O texto das seções 0 a 10 acima registra a intenção original; onde houver conflito, vale esta seção e o código (`workflows/chatbot-waha-divercity*.json`).
+
+Deviation: **estrutura (seção 0.1 e 0.4).** O fluxo deixou de ser um workflow único. São 5 workflows, todos com o prefixo `[chatbot] ` no nome do n8n: o principal `[chatbot] Divercity` (gatilho WAHA, `CONFIG`, `INSTRUCOES` e uma chamada por etapa) e 4 subworkflows chamados com Execute Workflow: `Filtros` (blocos 2 e 3), `Agrupar mensagens` (bloco 4), `Agente` (blocos 5 e 6) e `Resposta e handoff` (bloco 7). `CONFIG` e `INSTRUCOES` existem só no principal e são passados em cada chamada. Os comentários (sticky notes) dos blocos foram removidos pelo dono ao reorganizar os nodes. Arquivos: `chatbot-waha-divercity.json`, `-filters`, `-debounce`, `-agent`, `-reply`. Motivo: o fluxo único ficou confuso de manter.
+
+Deviation: **filtro 5 (seção 2).** O sinal "número salvo na agenda" é o campo `name` do contato não vazio, consultado em `<telefone>@c.us`, e não `isMyContact` (o engine NOWEB não preenche esse campo). O telefone vem de `_data.key.remoteJidAlt`; sem telefone, ou com consulta inválida, a mensagem é ignorada e registrada (falha fechada). Nodes extras: `Tem telefone?` e `Consulta válida?`. Consulta pelo id `@lid` não serve, porque devolve `name` vazio para contato salvo.
+
+Deviation: **identificação do chat (seção 2.1).** `chatId = (fromMe && to) ? to : from`, porque conversas privadas chegam como `<id>@lid` com `to = null`. `pausa:`, `buf:`, `ultima:`, `conv:` usam esse `chatId`.
+
+Deviation: **chaves e limpeza (seções 3, 4, 7).** Foi acrescentada a chave `entrega:{idMensagem}` (deduplicação de entrega do webhook). A chave `bot-msg:{id}` é gravada em **todo** envio do bot (`continua`, `resolvido` e handoff), com o último trecho depois de `_` do id enviado, e não só em `continua`. O handoff também apaga `buf:{chatId}`.
+
+Deviation: **mídia (seção 2.3).** O cliente que manda áudio, imagem, vídeo, documento, localização ou contato recebe só `MSG_MIDIA` (uma mensagem), sem `MSG_HANDOFF_CLIENTE`, e um único handoff.
+
+Deviation: **agente e ferramentas (seção 6).** As ferramentas são o node `HTTP Request Tool` (`n8n-nodes-base.httpRequestTool` 4.5) com os nomes `consultar_passaportes` e `consultar_horarios`, porque o agente 3.1 do n8n 2.41.7 não executa `toolHttpRequest` 1.1. Falhas HTTP (401, 5xx, vazio) voltam ao modelo como dado e a regra 3 da persona manda para `humano`. O Structured Output Parser foi removido (falhava com o `gpt-4o-mini`): o modelo responde JSON no texto e o node `6.1 Interpretar resposta` lê a resposta. Ele aceita JSON puro, JSON com cercas de código, o wrapper `{"output": {...}}` ou JSON com texto em volta; texto puro vira `resposta` com status `continua`; vazio, status inválido ou JSON quebrado vai para o handoff (`falha técnica`).
+
+Deviation: **persona (seção 1.2 e Anexo A).** A pedido do dono, o Dry conversa: responde cumprimentos e mensagens vagas com perguntas curtas e só usa `humano` quando não sabe responder ou nos casos da regra 4 (festa, orçamento, reserva, data, disponibilidade, pagamento, reclamação, pedir pessoa). `resolvido` só quando o cliente encerra de forma explícita, nunca logo depois de informar preço ou horário. O texto vigente é o valor de `INSTRUCOES.PERSONA_E_REGRAS` no workflow principal; o Anexo A abaixo é o rascunho original.
+
+Deviation: **valores e convenções.** `WAHA_SESSION = "Default"` (D maiúsculo, nome real da sessão). Expressões usam `.first()` em vez de `.item`. Identificadores, nomes de nodes e chaves em português por decisão do dono (exceção à regra de inglês do `CLAUDE.md`). Todos os workflows têm `errorWorkflow` `FF0x666oa1bfHLDI`, então uma falha dentro de um subworkflow pode gerar dois alertas (no sub e no principal). O hook global do WAHA (`WHATSAPP_HOOK_URL`, evento `message.any`) aponta para o gatilho do workflow principal.
+
+Deviation: **teste de aceite (seção 9).** Confirmados ao vivo em 2026-10-13, com número de teste: 2 (feriado 12/10 → `weekendPrice`, 12h às 20h) e 13 (mensagem do próprio bot não pausa). O restante da lista está no checklist da fase 12 do `plan.md`.
+
 ## Anexo A — rascunho de `PERSONA_E_REGRAS`
 
 ```

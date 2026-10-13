@@ -1,40 +1,8 @@
 {
-  "name": "[chatbot] Divercity - Resposta e handoff",
   "id": "msQXMvHkSmTdK8Ll",
+  "name": "[chatbot] Divercity - Resposta e handoff",
   "active": false,
   "nodes": [
-    {
-      "parameters": {
-        "content": "## 0 Entrada — chamado pelo fluxo principal\nEntrada: ou o item do agente { output: { resposta, status, motivo, resumo }, chatId, telefone, nomeContato, ehLid, sessao, textoCliente }, ou um item de mídia vindo dos filtros (tipo audio, imagem, video, documento, localizacao ou contato, tipoLabel, legenda…); sempre com CONFIG e INSTRUCOES. Os nós CONFIG e INSTRUCOES daqui só repetem os valores do fluxo principal; edite-os lá.\nSaída: fim do fluxo, nada volta ao principal.",
-        "height": 240,
-        "width": 960,
-        "color": 7
-      },
-      "id": "86f65597-6bf3-40c7-988a-27a6196e29c8",
-      "name": "0 Nota Entrada do sub-workflow",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        -80,
-        0
-      ]
-    },
-    {
-      "parameters": {
-        "content": "## 7 Resposta, encerramento e handoff — envia, encerra a conversa ou pausa e chama a equipe\nEnvia a resposta ao cliente, pausa o chat por PAUSA_HORAS, limpa conversa e buffer e avisa o grupo de atendimento.",
-        "height": 700,
-        "width": 3220,
-        "color": 7
-      },
-      "id": "3aaeaea7-aca6-4b24-8b2d-37eb48a239b4",
-      "name": "7 Nota Resposta e handoff",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        -80,
-        300
-      ]
-    },
     {
       "parameters": {
         "inputSource": "passthrough"
@@ -44,15 +12,14 @@
       "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
       "position": [
-        0,
-        100
+        -64,
+        176
       ]
     },
     {
       "parameters": {
         "mode": "raw",
         "jsonOutput": "={{ $json.CONFIG }}",
-        "includeOtherFields": false,
         "options": {}
       },
       "id": "093e0344-0fc8-4dda-8171-d8c004f9b25b",
@@ -60,15 +27,14 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        220,
-        100
+        160,
+        176
       ]
     },
     {
       "parameters": {
         "mode": "raw",
         "jsonOutput": "={{ $('Receber do fluxo principal').first().json.INSTRUCOES }}",
-        "includeOtherFields": false,
         "options": {}
       },
       "id": "9f8d029a-2162-4ae8-b0a1-8cb648e2b844",
@@ -76,15 +42,14 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        440,
-        100
+        384,
+        176
       ]
     },
     {
       "parameters": {
         "mode": "raw",
         "jsonOutput": "={{ Object.fromEntries(Object.entries($('Receber do fluxo principal').first().json).filter((e) => e[0] !== 'CONFIG' && e[0] !== 'INSTRUCOES')) }}",
-        "includeOtherFields": false,
         "options": {}
       },
       "id": "fbfe0349-521f-42d1-9578-a54fbece026e",
@@ -92,8 +57,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        660,
-        100
+        608,
+        176
       ]
     },
     {
@@ -126,8 +91,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        0,
-        440
+        832,
+        176
       ]
     },
     {
@@ -237,8 +202,8 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.4,
       "position": [
-        220,
-        440
+        1056,
+        -48
       ],
       "id": "16a22f61-8252-4fa8-9fb8-1ac2aa790c68"
     },
@@ -302,15 +267,14 @@
             }
           ]
         },
-        "includeOtherFields": false,
         "options": {}
       },
       "name": "7.0 Preparar handoff do agente",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        500,
-        340
+        1280,
+        -112
       ],
       "id": "dd083544-1483-42f8-abfe-d8d7f2733ac5"
     },
@@ -320,8 +284,8 @@
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
       "position": [
-        500,
-        450
+        1280,
+        80
       ],
       "id": "6d3464d2-9a04-4031-bbdc-2a20a5b93e43"
     },
@@ -331,8 +295,8 @@
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
       "position": [
-        500,
-        560
+        1280,
+        272
       ],
       "id": "d88d8507-5f3b-4d1d-82b4-0c2e1bc887ea"
     },
@@ -396,15 +360,14 @@
             }
           ]
         },
-        "includeOtherFields": false,
         "options": {}
       },
       "name": "6.3 Preparar falha técnica",
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        660,
-        680
+        1280,
+        464
       ],
       "id": "7eed1dd6-5cf2-468e-bfc9-316eeb191a8f"
     },
@@ -468,7 +431,6 @@
             }
           ]
         },
-        "includeOtherFields": false,
         "options": {}
       },
       "id": "09c567bb-67f7-426e-a603-cf2bf2fe0208",
@@ -476,8 +438,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        220,
-        700
+        1280,
+        656
       ]
     },
     {
@@ -540,7 +502,6 @@
             }
           ]
         },
-        "includeOtherFields": false,
         "options": {}
       },
       "id": "043113d3-c21d-4581-898b-5ddcf518f0cb",
@@ -548,16 +509,16 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        960,
-        450
+        1504,
+        80
       ]
     },
     {
       "parameters": {
+        "resource": "Chatting",
         "operation": "Stop Typing",
         "session": "={{ $('CONFIG').first().json.WAHA_SESSION }}",
         "chatId": "={{ $('7.3 Preparar handoff').first().json.chatId }}",
-        "resource": "Chatting",
         "requestOptions": {}
       },
       "id": "17bcb93d-1173-4a39-90e2-4a7785bb1f66",
@@ -565,8 +526,8 @@
       "type": "@devlikeapro/n8n-nodes-waha.WAHA",
       "typeVersion": 202502,
       "position": [
-        1180,
-        450
+        1728,
+        80
       ],
       "credentials": {
         "wahaApi": {
@@ -578,12 +539,11 @@
     },
     {
       "parameters": {
+        "resource": "Chatting",
         "operation": "Send Text",
         "session": "={{ $('CONFIG').first().json.WAHA_SESSION }}",
         "chatId": "={{ $('7.3 Preparar handoff').first().json.chatId }}",
-        "reply_to": "",
         "text": "={{ $('7.3 Preparar handoff').first().json.resposta }}",
-        "resource": "Chatting",
         "requestOptions": {}
       },
       "id": "a3c15e62-9ab1-4d06-b528-cb424f21c7ca",
@@ -591,8 +551,8 @@
       "type": "@devlikeapro/n8n-nodes-waha.WAHA",
       "typeVersion": 202502,
       "position": [
-        1400,
-        450
+        1952,
+        80
       ],
       "credentials": {
         "wahaApi": {
@@ -615,8 +575,8 @@
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
       "position": [
-        1620,
-        450
+        2176,
+        80
       ],
       "credentials": {
         "redis": {
@@ -639,8 +599,8 @@
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
       "position": [
-        1840,
-        450
+        2400,
+        80
       ],
       "credentials": {
         "redis": {
@@ -659,8 +619,8 @@
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
       "position": [
-        2060,
-        450
+        2624,
+        80
       ],
       "credentials": {
         "redis": {
@@ -679,8 +639,8 @@
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
       "position": [
-        2280,
-        450
+        2848,
+        80
       ],
       "credentials": {
         "redis": {
@@ -719,8 +679,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        2500,
-        450
+        3072,
+        80
       ]
     },
     {
@@ -741,7 +701,6 @@
             }
           ]
         },
-        "includeOtherFields": false,
         "options": {}
       },
       "id": "1fbc73a1-6f76-4706-849c-9b77abde9fed",
@@ -749,14 +708,12 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        2720,
-        570
+        3296,
+        176
       ]
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
-        "language": "javaScript",
         "jsCode": "// Monta o texto do aviso ao grupo de atendimento (função pura, sem rede)\nconst h = $('7.3 Preparar handoff').first().json;\nconst cfg = $('CONFIG').first().json;\nconst tel = String(h.telefone ?? '').replace(/\\D/g, '');\n// 55 + DDD + 8 ou 9 dígitos vira +55 DD NNNN(N)-NNNN; outros países ficam só com +\nconst m = tel.match(/^55(\\d{2})(\\d{4,5})(\\d{4})$/);\nconst telFmt = !tel ? '' : m ? `+55 ${m[1]} ${m[2]}-${m[3]}` : `+${tel}`;\nconst nome = String(h.nomeContato ?? '').trim() || 'sem nome';\nconst resumo = (Array.isArray(h.resumo) ? h.resumo : []).map((l) => String(l ?? '').trim()).filter(Boolean).slice(0, 3);\nconst ultimo = String(h.ultimoTexto ?? '').trim();\nconst linhas = ['Atendimento humano necessário', `Cliente: ${nome}${telFmt ? ' — ' + telFmt : ''}`];\n// link só quando habilitado na CONFIG e houver telefone (chat @lid sem alt não tem)\nif (cfg.INCLUIR_LINK_WA && tel) linhas.push(`Conversa: https://wa.me/${tel}`);\nlinhas.push(`Motivo: ${h.motivo ?? ''}`);\nif (resumo.length) linhas.push('Resumo:', ...resumo.map((l) => `• ${l}`));\nif (ultimo) linhas.push(`Última mensagem: \"${ultimo}\"`);\nlinhas.push(`O bot parou de responder este chat por ${cfg.PAUSA_HORAS}h (renova a cada mensagem da atendente).`);\nreturn [{ json: { texto: linhas.join('\\n') } }];\n"
       },
       "id": "ea5052b8-db10-4660-8b6e-3913eb2f4273",
@@ -764,18 +721,17 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        2720,
-        350
+        3296,
+        -16
       ]
     },
     {
       "parameters": {
+        "resource": "Chatting",
         "operation": "Send Text",
         "session": "={{ $('CONFIG').first().json.WAHA_SESSION }}",
         "chatId": "={{ $('CONFIG').first().json.GRUPO_ATENDIMENTO_ID }}",
-        "reply_to": "",
         "text": "={{ $('7.3 Montar aviso do grupo').first().json.texto }}",
-        "resource": "Chatting",
         "requestOptions": {}
       },
       "id": "7b90b597-c895-4d8d-910a-635ec8bc8ad8",
@@ -783,8 +739,8 @@
       "type": "@devlikeapro/n8n-nodes-waha.WAHA",
       "typeVersion": 202502,
       "position": [
-        2940,
-        350
+        3520,
+        -16
       ],
       "credentials": {
         "wahaApi": {
@@ -795,10 +751,10 @@
     },
     {
       "parameters": {
+        "resource": "Chatting",
         "operation": "Stop Typing",
         "session": "={{ $('CONFIG').first().json.WAHA_SESSION }}",
         "chatId": "={{ $('7.0 Dados recebidos').first().json.chatId }}",
-        "resource": "Chatting",
         "requestOptions": {}
       },
       "id": "a879b764-810c-46c2-b4c3-bac2e32b0372",
@@ -806,8 +762,8 @@
       "type": "@devlikeapro/n8n-nodes-waha.WAHA",
       "typeVersion": 202502,
       "position": [
-        960,
-        750
+        1504,
+        272
       ],
       "credentials": {
         "wahaApi": {
@@ -819,12 +775,11 @@
     },
     {
       "parameters": {
+        "resource": "Chatting",
         "operation": "Send Text",
         "session": "={{ $('CONFIG').first().json.WAHA_SESSION }}",
         "chatId": "={{ $('7.0 Dados recebidos').first().json.chatId }}",
-        "reply_to": "",
         "text": "={{ $('7.0 Rotear por status').first().json.output.resposta }}",
-        "resource": "Chatting",
         "requestOptions": {}
       },
       "id": "6d86761f-e194-4a1e-97e0-cabee3e04cbd",
@@ -832,8 +787,8 @@
       "type": "@devlikeapro/n8n-nodes-waha.WAHA",
       "typeVersion": 202502,
       "position": [
-        1180,
-        750
+        1728,
+        272
       ],
       "credentials": {
         "wahaApi": {
@@ -856,8 +811,8 @@
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
       "position": [
-        1400,
-        750
+        1952,
+        272
       ],
       "credentials": {
         "redis": {
@@ -868,10 +823,10 @@
     },
     {
       "parameters": {
+        "resource": "Chatting",
         "operation": "Stop Typing",
         "session": "={{ $('CONFIG').first().json.WAHA_SESSION }}",
         "chatId": "={{ $('7.0 Dados recebidos').first().json.chatId }}",
-        "resource": "Chatting",
         "requestOptions": {}
       },
       "id": "64bfa191-ff31-4240-9960-a61ee326f16e",
@@ -879,8 +834,8 @@
       "type": "@devlikeapro/n8n-nodes-waha.WAHA",
       "typeVersion": 202502,
       "position": [
-        960,
-        870
+        1504,
+        464
       ],
       "credentials": {
         "wahaApi": {
@@ -892,12 +847,11 @@
     },
     {
       "parameters": {
+        "resource": "Chatting",
         "operation": "Send Text",
         "session": "={{ $('CONFIG').first().json.WAHA_SESSION }}",
         "chatId": "={{ $('7.0 Dados recebidos').first().json.chatId }}",
-        "reply_to": "",
         "text": "={{ $('7.0 Rotear por status').first().json.output.resposta }}",
-        "resource": "Chatting",
         "requestOptions": {}
       },
       "id": "99a31786-edbc-4518-999a-fa648fe347ab",
@@ -905,8 +859,8 @@
       "type": "@devlikeapro/n8n-nodes-waha.WAHA",
       "typeVersion": 202502,
       "position": [
-        1180,
-        870
+        1728,
+        464
       ],
       "credentials": {
         "wahaApi": {
@@ -929,8 +883,8 @@
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
       "position": [
-        1400,
-        870
+        1952,
+        464
       ],
       "credentials": {
         "redis": {
@@ -949,8 +903,8 @@
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
       "position": [
-        1620,
-        870
+        2176,
+        464
       ],
       "credentials": {
         "redis": {
@@ -1275,6 +1229,7 @@
   "settings": {
     "executionOrder": "v1",
     "errorWorkflow": "FF0x666oa1bfHLDI",
-    "binaryMode": "separate"
+    "binaryMode": "separate",
+    "availableInMCP": true
   }
 }

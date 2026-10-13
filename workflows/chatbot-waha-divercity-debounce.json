@@ -1,40 +1,8 @@
 {
-  "name": "[chatbot] Divercity - Agrupar mensagens",
   "id": "9tJm4MQCI1leSWEm",
+  "name": "[chatbot] Divercity - Agrupar mensagens",
   "active": false,
   "nodes": [
-    {
-      "parameters": {
-        "content": "## 0 Entrada — chamado pelo fluxo principal\nEntrada: item de texto vindo dos filtros (idMensagem, sessao, fromMe, source, chatId, timestamp, tipo, tipoLabel, texto, legenda, nomeContato, telefone, ehLid) + CONFIG e INSTRUCOES. Os nós CONFIG e INSTRUCOES daqui só repetem os valores do fluxo principal; edite-os lá.\nSaída: nenhum item (esta execução não é a última mensagem, ou o chat foi pausado) ou o mesmo item com texto = textos do buffer juntados, mais CONFIG e INSTRUCOES.",
-        "height": 240,
-        "width": 960,
-        "color": 7
-      },
-      "id": "4c7f61f7-f882-42f8-a796-7df3ff0af69b",
-      "name": "0 Nota Entrada do sub-workflow",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        -80,
-        0
-      ]
-    },
-    {
-      "parameters": {
-        "content": "## 4 Agrupar mensagens — espera DEBOUNCE_SEGUNDOS, só a última mensagem segue\nGuarda cada texto no buffer do chat, espera e deixa só a última mensagem juntar os textos do buffer; o chat pausado nesse meio tempo (mídia) encerra em silêncio.",
-        "height": 420,
-        "width": 1840,
-        "color": 7
-      },
-      "id": "a4f10001-7c21-4b0e-9a11-0d4e5f6a7b01",
-      "name": "4 Nota Agrupar mensagens",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        -80,
-        300
-      ]
-    },
     {
       "parameters": {
         "inputSource": "passthrough"
@@ -45,14 +13,13 @@
       "typeVersion": 1.1,
       "position": [
         0,
-        100
+        208
       ]
     },
     {
       "parameters": {
         "mode": "raw",
         "jsonOutput": "={{ $json.CONFIG }}",
-        "includeOtherFields": false,
         "options": {}
       },
       "id": "51714f52-68fd-4806-a52f-1218ec373c6d",
@@ -60,15 +27,14 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        220,
-        100
+        224,
+        208
       ]
     },
     {
       "parameters": {
         "mode": "raw",
         "jsonOutput": "={{ $('Receber do fluxo principal').first().json.INSTRUCOES }}",
-        "includeOtherFields": false,
         "options": {}
       },
       "id": "f2cf34ea-9e61-4290-adad-abf7b55de106",
@@ -76,15 +42,14 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        440,
-        100
+        448,
+        208
       ]
     },
     {
       "parameters": {
         "mode": "raw",
         "jsonOutput": "={{ Object.fromEntries(Object.entries($('Receber do fluxo principal').first().json).filter((e) => e[0] !== 'CONFIG' && e[0] !== 'INSTRUCOES')) }}",
-        "includeOtherFields": false,
         "options": {}
       },
       "id": "8792092b-3ec0-49ad-b69a-d9e01a8b3150",
@@ -92,8 +57,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        660,
-        100
+        672,
+        208
       ]
     },
     {
@@ -108,8 +73,8 @@
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
       "position": [
-        0,
-        440
+        896,
+        208
       ],
       "credentials": {
         "redis": {
@@ -132,8 +97,8 @@
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
       "position": [
-        220,
-        440
+        1120,
+        208
       ],
       "credentials": {
         "redis": {
@@ -157,8 +122,8 @@
       "type": "@devlikeapro/n8n-nodes-waha.WAHA",
       "typeVersion": 202502,
       "position": [
-        440,
-        440
+        1344,
+        208
       ],
       "credentials": {
         "wahaApi": {
@@ -181,8 +146,8 @@
       "type": "@devlikeapro/n8n-nodes-waha.WAHA",
       "typeVersion": 202502,
       "position": [
-        660,
-        440
+        1568,
+        208
       ],
       "credentials": {
         "wahaApi": {
@@ -194,17 +159,15 @@
     },
     {
       "parameters": {
-        "resume": "timeInterval",
-        "amount": "={{ $('CONFIG').first().json.DEBOUNCE_SEGUNDOS }}",
-        "unit": "seconds"
+        "amount": "={{ $('CONFIG').first().json.DEBOUNCE_SEGUNDOS }}"
       },
       "id": "a4f10006-7c21-4b0e-9a11-0d4e5f6a7b06",
       "name": "4.3 Esperar debounce",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
       "position": [
-        880,
-        440
+        1792,
+        208
       ],
       "webhookId": "a4f1000b-7c21-4b0e-9a11-0d4e5f6a7b0b"
     },
@@ -221,8 +184,8 @@
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
       "position": [
-        1100,
-        440
+        2016,
+        208
       ],
       "credentials": {
         "redis": {
@@ -261,8 +224,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        1320,
-        440
+        2240,
+        208
       ]
     },
     {
@@ -278,8 +241,8 @@
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
       "position": [
-        0,
-        580
+        2464,
+        288
       ],
       "credentials": {
         "redis": {
@@ -318,8 +281,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        220,
-        580
+        2688,
+        288
       ]
     },
     {
@@ -335,8 +298,8 @@
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
       "position": [
-        440,
-        580
+        2912,
+        336
       ],
       "credentials": {
         "redis": {
@@ -355,8 +318,8 @@
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
       "position": [
-        660,
-        580
+        3136,
+        336
       ],
       "credentials": {
         "redis": {
@@ -369,7 +332,6 @@
       "parameters": {
         "mode": "raw",
         "jsonOutput": "={{ Object.assign({}, $('4.0 Mensagem recebida').first().json, { texto: (Array.isArray($('4.5 Ler buffer').first().json.lista) && $('4.5 Ler buffer').first().json.lista.length) ? $('4.5 Ler buffer').first().json.lista.join('\\n') : $('4.0 Mensagem recebida').first().json.texto }) }}",
-        "includeOtherFields": false,
         "options": {}
       },
       "id": "a4f1000e-7c21-4b0e-9a11-0d4e5f6a7b0e",
@@ -377,8 +339,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        880,
-        580
+        3360,
+        336
       ]
     },
     {
@@ -388,15 +350,14 @@
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
       "position": [
-        1100,
-        580
+        3584,
+        336
       ]
     },
     {
       "parameters": {
         "mode": "raw",
         "jsonOutput": "={{ Object.assign({}, $json, { CONFIG: $('CONFIG').first().json, INSTRUCOES: $('INSTRUCOES').first().json }) }}",
-        "includeOtherFields": false,
         "options": {}
       },
       "id": "1009977c-236e-4ac6-8a41-8ccc1697a8b7",
@@ -404,8 +365,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        1320,
-        580
+        3808,
+        336
       ]
     },
     {
@@ -438,8 +399,8 @@
       "type": "n8n-nodes-base.filter",
       "typeVersion": 2.3,
       "position": [
-        1540,
-        440
+        2912,
+        112
       ]
     }
   ],
@@ -649,6 +610,7 @@
   "settings": {
     "executionOrder": "v1",
     "errorWorkflow": "FF0x666oa1bfHLDI",
-    "binaryMode": "separate"
+    "binaryMode": "separate",
+    "availableInMCP": true
   }
 }

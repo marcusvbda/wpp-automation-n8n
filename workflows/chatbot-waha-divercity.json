@@ -1,88 +1,8 @@
 {
-  "name": "[chatbot] Divercity",
   "id": "B1fRwNFx0bFdHYGI",
+  "name": "[chatbot] Divercity",
   "active": false,
   "nodes": [
-    {
-      "parameters": {
-        "content": "## 1 CONFIG e INSTRUÇÕES — valores que o dono edita\nDois nós Set com todos os valores ajustáveis do bot; nada fica fixo nos outros nós.",
-        "height": 240,
-        "width": 480,
-        "color": 7
-      },
-      "id": "b7ff9ed5-9c4d-405f-8f87-2695107b8c81",
-      "name": "1 Nota CONFIG e INSTRUÇÕES",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        380,
-        0
-      ]
-    },
-    {
-      "parameters": {
-        "content": "## 2 Entrada e filtros — descarta o que o bot não deve responder\nSub-workflow «[chatbot] Divercity - Filtros»: normaliza o evento, aplica filtros e pausa por atendente; devolve só texto ou mídia a tratar.",
-        "height": 400,
-        "width": 960,
-        "color": 7
-      },
-      "id": "99cd0f7b-2e07-438b-9a35-ba194ef4878b",
-      "name": "2 Nota Filtros (sub-workflow)",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        -80,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "content": "## 4 Agrupar mensagens\nSub-workflow «[chatbot] Divercity - Agrupar mensagens»: espera DEBOUNCE_SEGUNDOS; só a última mensagem segue, com os textos juntados.",
-        "height": 400,
-        "width": 360,
-        "color": 7
-      },
-      "id": "aa29a253-10c0-4b30-b92b-a002774033b2",
-      "name": "4 Nota Debounce (sub-workflow)",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        920,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "content": "## 5-6 Conversa e agente\nSub-workflow «[chatbot] Divercity - Agente»: id da conversa, contexto e agente com ferramentas; devolve resposta e status.",
-        "height": 400,
-        "width": 360,
-        "color": 7
-      },
-      "id": "bbca111f-b3f8-48d0-aaee-d050e6c1ab4b",
-      "name": "5 Nota Agente (sub-workflow)",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        1320,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "content": "## 7 Resposta e handoff\nSub-workflow «[chatbot] Divercity - Resposta e handoff»: envia a resposta, encerra a conversa ou pausa o chat e avisa o grupo; mídia vai direto para handoff.",
-        "height": 400,
-        "width": 360,
-        "color": 7
-      },
-      "id": "a821801d-3040-431f-b04a-8b4f0ccd00db",
-      "name": "7 Nota Resposta (sub-workflow)",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        1720,
-        300
-      ]
-    },
     {
       "parameters": {},
       "id": "7d207e71-68ab-4897-953c-2b3a14b8ef03",
@@ -90,8 +10,8 @@
       "type": "@devlikeapro/n8n-nodes-waha.wahaTrigger",
       "typeVersion": 202502,
       "position": [
-        0,
-        500
+        -416,
+        112
       ],
       "webhookId": "33e5dd5f-b628-4552-ba1c-d5cf09b54deb"
     },
@@ -215,7 +135,6 @@
             }
           ]
         },
-        "includeOtherFields": false,
         "options": {}
       },
       "id": "1825b46b-2a19-46ad-8048-9b7343ce8948",
@@ -223,8 +142,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        440,
-        100
+        32,
+        496
       ]
     },
     {
@@ -269,7 +188,6 @@
             }
           ]
         },
-        "includeOtherFields": false,
         "options": {}
       },
       "id": "619bfc42-0831-4a85-9d74-5eadbe84f8e6",
@@ -277,15 +195,14 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        660,
-        100
+        256,
+        496
       ]
     },
     {
       "parameters": {
         "mode": "raw",
         "jsonOutput": "={{ { CONFIG: $('CONFIG').first().json, INSTRUCOES: $('INSTRUCOES').first().json, evento: $('2.0 Capturar evento').first().json.evento } }}",
-        "includeOtherFields": false,
         "options": {}
       },
       "id": "3f83b329-a577-40e6-8b98-f6a6e687f79d",
@@ -293,13 +210,12 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        220,
-        500
+        480,
+        496
       ]
     },
     {
       "parameters": {
-        "source": "database",
         "workflowId": {
           "__rl": true,
           "value": "AvWLP9xiCyvHhyn8",
@@ -307,7 +223,6 @@
           "cachedResultName": "[chatbot] Divercity - Filtros",
           "cachedResultUrl": "/workflow/AvWLP9xiCyvHhyn8"
         },
-        "mode": "once",
         "options": {
           "waitForSubWorkflow": true
         }
@@ -317,8 +232,8 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.4,
       "position": [
-        440,
-        500
+        704,
+        496
       ]
     },
     {
@@ -384,13 +299,12 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.4,
       "position": [
-        660,
-        500
+        928,
+        496
       ]
     },
     {
       "parameters": {
-        "source": "database",
         "workflowId": {
           "__rl": true,
           "value": "9tJm4MQCI1leSWEm",
@@ -398,7 +312,6 @@
           "cachedResultName": "[chatbot] Divercity - Agrupar mensagens",
           "cachedResultUrl": "/workflow/9tJm4MQCI1leSWEm"
         },
-        "mode": "once",
         "options": {
           "waitForSubWorkflow": true
         }
@@ -408,13 +321,12 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.4,
       "position": [
-        1020,
-        440
+        1152,
+        432
       ]
     },
     {
       "parameters": {
-        "source": "database",
         "workflowId": {
           "__rl": true,
           "value": "T36H0vXQgPRsPGNe",
@@ -422,7 +334,6 @@
           "cachedResultName": "[chatbot] Divercity - Agente",
           "cachedResultUrl": "/workflow/T36H0vXQgPRsPGNe"
         },
-        "mode": "once",
         "options": {
           "waitForSubWorkflow": true
         }
@@ -432,13 +343,12 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.4,
       "position": [
-        1420,
-        440
+        1376,
+        432
       ]
     },
     {
       "parameters": {
-        "source": "database",
         "workflowId": {
           "__rl": true,
           "value": "msQXMvHkSmTdK8Ll",
@@ -446,7 +356,6 @@
           "cachedResultName": "[chatbot] Divercity - Resposta e handoff",
           "cachedResultUrl": "/workflow/msQXMvHkSmTdK8Ll"
         },
-        "mode": "once",
         "options": {
           "waitForSubWorkflow": true
         }
@@ -456,15 +365,14 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.4,
       "position": [
-        1820,
-        560
+        1600,
+        496
       ]
     },
     {
       "parameters": {
         "mode": "raw",
         "jsonOutput": "={{ { evento: $json } }}",
-        "includeOtherFields": false,
         "options": {}
       },
       "id": "abe1c206-4d84-4f73-8b29-92d0142fec24",
@@ -472,8 +380,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        220,
-        360
+        -192,
+        496
       ]
     }
   ],

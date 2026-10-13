@@ -1,56 +1,8 @@
 {
-  "name": "[chatbot] Divercity - Filtros",
   "id": "AvWLP9xiCyvHhyn8",
+  "name": "[chatbot] Divercity - Filtros",
   "active": false,
   "nodes": [
-    {
-      "parameters": {
-        "content": "## 0 Entrada — chamado pelo fluxo principal\nEntrada: { CONFIG, INSTRUCOES, evento } (evento = payload do WAHA). Os nós CONFIG e INSTRUCOES daqui só repetem os valores do fluxo principal; edite-os lá.\nSaída: nenhum item (nada a responder) ou um item com idMensagem, sessao, fromMe, source, chatId, timestamp, tipo, tipoLabel, texto, legenda, nomeContato, telefone, ehLid, CONFIG e INSTRUCOES (tipo = texto, audio, imagem, video, documento, localizacao ou contato).",
-        "height": 240,
-        "width": 960,
-        "color": 7
-      },
-      "id": "7da0a204-212e-46ad-88ff-a47909c72b86",
-      "name": "0 Nota Entrada do sub-workflow",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        -80,
-        0
-      ]
-    },
-    {
-      "parameters": {
-        "content": "## 2 Entrada e filtros — normaliza e descarta o que o bot não deve responder\nRecebe o evento do WAHA, normaliza a mensagem e descarta grupos, duplicadas, antigas, fora da allowlist e contatos salvos na agenda (2.2.5) antes de rotear por tipo.",
-        "height": 400,
-        "width": 4400,
-        "color": 7
-      },
-      "id": "0ceb129a-f8da-41d2-933b-3e90a18cddba",
-      "name": "2 Nota Entrada e filtros",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        -80,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "content": "## 3 Pausa e atendente humana — o bot fica calado enquanto uma pessoa atende o chat\nMensagem digitada pela atendente (não enviada pelo bot) pausa o chat por PAUSA_HORAS; chat pausado não recebe resposta do bot.",
-        "height": 420,
-        "width": 880,
-        "color": 7
-      },
-      "id": "d7441811-5b7b-44bc-9845-d6c53db3b7c8",
-      "name": "3 Nota Atendente",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        2300,
-        740
-      ]
-    },
     {
       "parameters": {
         "inputSource": "passthrough"
@@ -61,14 +13,13 @@
       "typeVersion": 1.1,
       "position": [
         0,
-        100
+        576
       ]
     },
     {
       "parameters": {
         "mode": "raw",
         "jsonOutput": "={{ $json.CONFIG }}",
-        "includeOtherFields": false,
         "options": {}
       },
       "id": "d9a8d334-f342-4ca9-82e0-77e0a3233647",
@@ -76,15 +27,14 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        220,
-        100
+        224,
+        576
       ]
     },
     {
       "parameters": {
         "mode": "raw",
         "jsonOutput": "={{ $('Receber do fluxo principal').first().json.INSTRUCOES }}",
-        "includeOtherFields": false,
         "options": {}
       },
       "id": "f9eaaafc-c3ba-4559-82af-db325ffadc7c",
@@ -92,15 +42,14 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        440,
-        100
+        448,
+        576
       ]
     },
     {
       "parameters": {
         "mode": "raw",
         "jsonOutput": "={{ $('Receber do fluxo principal').first().json.evento }}",
-        "includeOtherFields": false,
         "options": {}
       },
       "id": "c2c9254b-e32b-447b-85cb-5e797575bf66",
@@ -108,8 +57,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        660,
-        100
+        672,
+        576
       ]
     },
     {
@@ -196,7 +145,6 @@
             }
           ]
         },
-        "includeOtherFields": false,
         "options": {}
       },
       "id": "dd9de74b-36fa-42ba-849d-4d1e31580327",
@@ -204,14 +152,12 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        880,
-        500
+        896,
+        576
       ]
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
-        "language": "javaScript",
         "jsCode": "// Normaliza o payload extraído para o formato único usado no restante do fluxo\nconst IGNORAR_CHAVES = ['messageContextInfo', 'senderKeyDistributionMessage'];\nconst POR_CHAVE = { audioMessage: 'audio', imageMessage: 'imagem', videoMessage: 'video', documentMessage: 'documento', documentWithCaptionMessage: 'documento',\n  locationMessage: 'localizacao', liveLocationMessage: 'localizacao', contactMessage: 'contato', contactsArrayMessage: 'contato', stickerMessage: 'figurinha' };\nconst ROTULOS = { audio: 'áudio', imagem: 'imagem', video: 'vídeo', documento: 'documento', localizacao: 'localização', contato: 'contato' };\nconst COM_LEGENDA = ['imagem', 'video', 'documento'];\nconst soDigitos = (jid) => String(jid).split('@')[0].split(':')[0].replace(/\\D/g, '');\nreturn $input.all().map((item) => {\n  const j = item.json;\n  let tipo = 'ignorar';\n  let texto = '';\n  let legendaInterna = '';\n  if (j.temDados) {\n    const c = j.conteudo ?? {};\n    const chave = Object.keys(c).find((k) => !IGNORAR_CHAVES.includes(k)) ?? '';\n    if (chave === 'conversation' || chave === 'extendedTextMessage') {\n      const interno = String(c.conversation ?? c.extendedTextMessage?.text ?? '').trim();\n      if (interno) { tipo = 'texto'; texto = j.corpo || interno; }\n    } else {\n      tipo = POR_CHAVE[chave] ?? 'ignorar';\n      legendaInterna = String(c[chave]?.caption ?? c.documentWithCaptionMessage?.message?.documentMessage?.caption ?? '');\n    }\n  } else if (!j.hasMedia) {\n    if (j.corpo) { tipo = 'texto'; texto = j.corpo; }\n  } else {\n    // sem _data: decide pelo mimetype\n    tipo = j.mimetype.startsWith('audio') ? 'audio' : j.mimetype.startsWith('image') ? 'imagem' : j.mimetype.startsWith('video') ? 'video' : 'documento';\n  }\n  const chatId = String(j.chatId ?? '');\n  const alt = String(j.remoteJidAlt ?? '');\n  const telefone = alt.endsWith('@s.whatsapp.net') ? soDigitos(alt)\n    : (chatId.endsWith('@c.us') || chatId.endsWith('@s.whatsapp.net')) ? soDigitos(chatId) : '';\n  return { json: {\n    idMensagem: j.idMensagem, sessao: j.sessao, fromMe: j.fromMe, source: j.source, chatId,\n    timestamp: j.timestamp, tipo, tipoLabel: ROTULOS[tipo] ?? '', texto,\n    legenda: COM_LEGENDA.includes(tipo) ? (j.corpo || legendaInterna) : '',\n    nomeContato: j.nomeContato, telefone, ehLid: chatId.endsWith('@lid'),\n  } };\n});"
       },
       "id": "5ac4a114-aa46-4d56-91fc-fa2031b116ad",
@@ -219,8 +165,8 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1100,
-        500
+        1120,
+        576
       ]
     },
     {
@@ -253,8 +199,8 @@
       "type": "n8n-nodes-base.filter",
       "typeVersion": 2.3,
       "position": [
-        1320,
-        500
+        1344,
+        576
       ]
     },
     {
@@ -269,8 +215,8 @@
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
       "position": [
-        1540,
-        500
+        1568,
+        576
       ],
       "credentials": {
         "redis": {
@@ -309,15 +255,14 @@
       "type": "n8n-nodes-base.filter",
       "typeVersion": 2.3,
       "position": [
-        1760,
-        500
+        1792,
+        576
       ]
     },
     {
       "parameters": {
         "mode": "raw",
         "jsonOutput": "={{ $('2.1 Normalizar mensagem').first().json }}",
-        "includeOtherFields": false,
         "options": {}
       },
       "id": "59e866bd-c382-4043-80a5-9ff77e06102b",
@@ -325,8 +270,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        1980,
-        500
+        2016,
+        576
       ]
     },
     {
@@ -359,8 +304,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        2200,
-        500
+        2240,
+        576
       ]
     },
     {
@@ -393,8 +338,8 @@
       "type": "n8n-nodes-base.filter",
       "typeVersion": 2.3,
       "position": [
-        2420,
-        500
+        2464,
+        496
       ]
     },
     {
@@ -427,8 +372,8 @@
       "type": "n8n-nodes-base.filter",
       "typeVersion": 2.3,
       "position": [
-        2640,
-        500
+        2688,
+        496
       ]
     },
     {
@@ -494,8 +439,8 @@
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.4,
       "position": [
-        2860,
-        500
+        5376,
+        112
       ]
     },
     {
@@ -528,8 +473,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        2640,
-        340
+        2912,
+        496
       ]
     },
     {
@@ -562,8 +507,8 @@
       "type": "n8n-nodes-base.filter",
       "typeVersion": 2.3,
       "position": [
-        2860,
-        340
+        3136,
+        432
       ]
     },
     {
@@ -596,8 +541,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        3080,
-        340
+        3360,
+        432
       ]
     },
     {
@@ -613,16 +558,16 @@
       "type": "@devlikeapro/n8n-nodes-waha.WAHA",
       "typeVersion": 202502,
       "position": [
-        3300,
-        340
+        3584,
+        352
       ],
-      "onError": "continueErrorOutput",
       "credentials": {
         "wahaApi": {
           "id": "fLb4y6X1sdRn0lC8",
           "name": "WAHA account"
         }
-      }
+      },
+      "onError": "continueErrorOutput"
     },
     {
       "parameters": {
@@ -654,8 +599,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        3520,
-        340
+        3808,
+        288
       ]
     },
     {
@@ -688,15 +633,14 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        3740,
-        340
+        4032,
+        240
       ]
     },
     {
       "parameters": {
         "mode": "raw",
         "jsonOutput": "={{ Object.assign({}, $('2.2.4 Aplicar allowlist de teste').first().json, { nomeContato: $('2.2.4 Aplicar allowlist de teste').first().json.nomeContato || $json.pushname || '' }) }}",
-        "includeOtherFields": false,
         "options": {}
       },
       "id": "03ed2671-6912-44c7-9092-0f2e8aa9f01b",
@@ -704,8 +648,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        3960,
-        340
+        4256,
+        160
       ]
     },
     {
@@ -732,7 +676,6 @@
             }
           ]
         },
-        "includeOtherFields": false,
         "options": {}
       },
       "id": "a32c2fee-91ef-4873-93d2-885c8d60916d",
@@ -740,8 +683,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        3520,
-        560
+        4032,
+        544
       ]
     },
     {
@@ -757,8 +700,8 @@
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
       "position": [
-        2420,
-        800
+        4704,
+        928
       ],
       "credentials": {
         "redis": {
@@ -797,8 +740,8 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        2640,
-        800
+        4928,
+        928
       ]
     },
     {
@@ -815,8 +758,8 @@
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
       "position": [
-        2860,
-        800
+        5152,
+        928
       ],
       "credentials": {
         "redis": {
@@ -832,8 +775,8 @@
       "type": "n8n-nodes-base.noOp",
       "typeVersion": 1,
       "position": [
-        2420,
-        1000
+        4480,
+        160
       ]
     },
     {
@@ -849,8 +792,8 @@
       "type": "n8n-nodes-base.redis",
       "typeVersion": 1,
       "position": [
-        2640,
-        1000
+        4704,
+        160
       ],
       "credentials": {
         "redis": {
@@ -863,7 +806,6 @@
       "parameters": {
         "mode": "raw",
         "jsonOutput": "={{ $('3.2 Mensagem do cliente').first().json }}",
-        "includeOtherFields": false,
         "options": {}
       },
       "id": "90a6ebf7-8153-4c2f-8fa6-bda17c6c3d07",
@@ -871,8 +813,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        2860,
-        1000
+        4928,
+        160
       ]
     },
     {
@@ -905,15 +847,14 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.3,
       "position": [
-        3080,
-        1000
+        5152,
+        160
       ]
     },
     {
       "parameters": {
         "mode": "raw",
         "jsonOutput": "={{ Object.assign({}, $json, { CONFIG: $('CONFIG').first().json, INSTRUCOES: $('INSTRUCOES').first().json }) }}",
-        "includeOtherFields": false,
         "options": {}
       },
       "id": "a3ed8cbd-5ec9-40de-b8f6-346a292dcee7",
@@ -921,8 +862,8 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        3100,
-        500
+        5600,
+        112
       ]
     },
     {
@@ -955,8 +896,8 @@
       "type": "n8n-nodes-base.filter",
       "typeVersion": 2.3,
       "position": [
-        4160,
-        520
+        5376,
+        496
       ]
     }
   ],
@@ -1347,6 +1288,7 @@
   "settings": {
     "executionOrder": "v1",
     "errorWorkflow": "FF0x666oa1bfHLDI",
-    "binaryMode": "separate"
+    "binaryMode": "separate",
+    "availableInMCP": true
   }
 }

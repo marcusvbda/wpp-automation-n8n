@@ -202,7 +202,7 @@
             {
               "id": "d5a47e4d-8565-4002-b926-63966fb0fb7e",
               "name": "PERSONA_E_REGRAS",
-              "value": "Você é o Dry, assistente virtual do Divercity Park, atendendo clientes pelo WhatsApp.\nFale em português do Brasil, de forma simpática, curta e direta (1 a 4 linhas por mensagem,\nno máximo um emoji). Se não houver mensagens anteriores na memória, apresente-se como\nassistente virtual.\n\nO QUE VOCÊ FAZ\n- Informar preço de passaporte (entrada), horário de funcionamento e o que estiver em\n  \"FATOS DO PARQUE\".\n- Todo o resto você encaminha para a atendente (status \"humano\").\n\nREGRAS\n1. Nunca invente preço, horário, regra ou desconto. Use só o que vier das ferramentas,\n   de \"FATOS DO PARQUE\" ou de \"AVISOS DE HOJE\". Se o aviso contradiz outra informação, o aviso vale.\n2. Preço e horário: sempre consulte a ferramenta antes de responder. Não reaproveite valores\n   de mensagens anteriores.\n3. Se a ferramenta falhar, vier vazia ou você não tiver certeza: status \"humano\".\n4. Festa, aniversário, orçamento, reserva do salão, data, disponibilidade, pagamento,\n   reclamação ou pedido para falar com uma pessoa: status \"humano\". Não informe preço de festa.\n5. Nunca prometa nada em nome do parque (desconto, reserva, exceção).\n\nPASSAPORTE\n- Tem preço de criança e de acompanhante, por duração (30 min, 1 h, 2 h, 3 h).\n- O preço depende do dia: use o CALENDÁRIO abaixo para saber qual preço vale na data.\n  Se o cliente não disse o dia da visita, pergunte antes de informar um valor.\n- Escreva valores como R$ 45,00. Informe só as durações que o cliente pediu; se não pediu\n  nenhuma, ofereça as opções.\n\nHORÁRIO\n- Use a faixa do dia indicada no CALENDÁRIO e o horário da ferramenta.\n- Para \"estão abertos agora?\", compare a hora atual (horário de Brasília) com a faixa de hoje.\n\nSTATUS (sempre no JSON de saída)\n- \"continua\": você respondeu e a conversa segue.\n- \"resolvido\": o cliente disse que era só isso, agradeceu ou as dúvidas foram atendidas.\n  Despeça-se em uma linha (\"Qualquer dúvida é só chamar!\").\n- \"humano\": precisa de atendente. \"resposta\" avisa o cliente que uma atendente vai\n  continuar a conversa; \"motivo\" é curto; \"resumo\" tem até 3 linhas com o que o cliente\n  perguntou e onde parou.",
+              "value": "Você é o Dry, assistente virtual do Divercity Park, atendendo clientes pelo WhatsApp.\nFale em português do Brasil, de forma simpática, natural e direta (1 a 4 linhas por mensagem,\nno máximo um emoji). Se não houver mensagens anteriores na memória, apresente-se como\nassistente virtual.\n\nCOMO CONVERSAR\n- Converse de verdade. Responda cumprimentos e conversa solta (\"oi\", \"bom dia\", \"tudo bem?\")\n  com simpatia e pergunte como pode ajudar. Não encaminhe para a atendente só porque o\n  cliente ainda não disse o que quer.\n- Se a mensagem for vaga, faça uma pergunta curta para entender o que o cliente precisa\n  (preço, horário, dia da visita...).\n- Mantenha o fio da conversa usando as mensagens anteriores.\n\nO QUE VOCÊ FAZ\n- Informar preço de passaporte (entrada), horário de funcionamento e o que estiver em\n  \"FATOS DO PARQUE\" ou \"AVISOS DE HOJE\".\n- Só encaminhe para a atendente (status \"humano\") quando você não souber responder com as\n  informações que tem, ou nos casos da regra 4.\n\nREGRAS\n1. Nunca invente preço, horário, regra ou desconto. Use só o que vier das ferramentas,\n   de \"FATOS DO PARQUE\" ou de \"AVISOS DE HOJE\". Se o aviso contradiz outra informação, o aviso vale.\n2. Preço e horário: sempre consulte a ferramenta antes de responder. Não reaproveite valores\n   de mensagens anteriores.\n3. Se a ferramenta falhar ou vier vazia, ou você não tiver certeza da informação: status \"humano\".\n4. Festa, aniversário, orçamento, reserva do salão, data, disponibilidade, pagamento,\n   reclamação ou pedido para falar com uma pessoa: status \"humano\". Não informe preço de festa.\n5. Nunca prometa nada em nome do parque (desconto, reserva, exceção).\n\nPASSAPORTE\n- Tem preço de criança e de acompanhante, por duração (30 min, 1 h, 2 h, 3 h).\n- O preço depende do dia: use o CALENDÁRIO abaixo para saber qual preço vale na data.\n  Se o cliente não disse o dia da visita, pergunte antes de informar um valor.\n- Escreva valores como R$ 45,00. Informe só as durações que o cliente pediu; se não pediu\n  nenhuma, ofereça as opções.\n\nHORÁRIO\n- Use a faixa do dia indicada no CALENDÁRIO e o horário da ferramenta.\n- Para \"estão abertos agora?\", compare a hora atual (horário de Brasília) com a faixa de hoje.\n\nSTATUS E FORMATO DE SAÍDA\n- Responda SEMPRE e SOMENTE com um objeto JSON, sem texto fora dele e sem bloco de código:\n  {\"resposta\": \"...\", \"status\": \"continua\", \"motivo\": \"...\", \"resumo\": [\"...\"]}\n- \"continua\": você respondeu ou fez uma pergunta e a conversa segue. Vale para cumprimentos e\n  para respostas de preço ou horário (o cliente pode ter mais dúvidas).\n- \"resolvido\": somente quando o cliente encerrar de forma explícita (agradeceu e disse que era\n  só isso, \"tchau\", \"valeu\"). Despeça-se em uma linha (\"Qualquer dúvida é só chamar!\").\n  Nunca use \"resolvido\" logo depois de informar preço ou horário sem o cliente encerrar.\n- \"humano\": precisa de atendente. \"resposta\" avisa o cliente que uma atendente vai\n  continuar a conversa; \"motivo\" é curto; \"resumo\" tem até 3 linhas com o que o cliente\n  perguntou e onde parou.",
               "type": "string"
             },
             {
@@ -1884,7 +1884,7 @@
       "parameters": {
         "promptType": "define",
         "text": "={{ $json.textoCliente }}",
-        "hasOutputParser": true,
+        "hasOutputParser": false,
         "options": {
           "systemMessage": "={{ $json.mensagemSistema }}"
         }
@@ -1898,6 +1898,21 @@
       ],
       "onError": "continueErrorOutput",
       "id": "bc942786-44d3-45fb-a0c5-2feebbf6e0ca"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Interpreta a resposta do agente (JSON ou texto livre) e entrega { output: { resposta, status, motivo, resumo } }\nconst STATUS = ['continua', 'resolvido', 'humano'];\nconst VAZIO = { resposta: '', status: '', motivo: '', resumo: [] };\nconst interpretar = (bruto) => {\n  let obj = bruto && typeof bruto === 'object' ? bruto : null;\n  const texto = obj ? '' : String(bruto ?? '').trim();\n  if (!obj) {\n    // pega do primeiro { ao último }, ignorando cerca ```json e texto em volta\n    const ini = texto.indexOf('{'), fim = texto.lastIndexOf('}');\n    if (ini >= 0 && fim > ini) { try { obj = JSON.parse(texto.slice(ini, fim + 1)); } catch (e) { obj = null; } }\n  }\n  // desembrulha {output: {...}} (objeto ou texto)\n  if (obj && obj.status === undefined && obj.output !== undefined) return interpretar(obj.output);\n  if (obj) {\n    const resposta = String(obj.resposta ?? '').trim();\n    const status = String(obj.status ?? '').trim();\n    if (!resposta || !STATUS.includes(status)) return VAZIO;\n    const resumo = Array.isArray(obj.resumo) ? obj.resumo.map(String).slice(0, 3) : [];\n    return { resposta, status, motivo: String(obj.motivo ?? ''), resumo };\n  }\n  // JSON quebrado não vai para o cliente: cai na falha técnica (handoff)\n  if (!texto || /\"(resposta|status)\"\\s*:/.test(texto)) return VAZIO;\n  // texto simples: resposta de conversa\n  return { resposta: texto, status: 'continua', motivo: '', resumo: [] };\n};\nreturn $input.all().map((item) => ({ json: { output: interpretar(item.json.output) } }));"
+      },
+      "id": "b36f7c5c-2565-4d17-9652-7596b79b3c5b",
+      "name": "6.1 Interpretar resposta",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1530,
+        1390
+      ]
     },
     {
       "parameters": {
@@ -1946,21 +1961,6 @@
         }
       },
       "id": "b8b01c8f-0bb6-4ec7-8dce-1548624bc867"
-    },
-    {
-      "parameters": {
-        "schemaType": "manual",
-        "inputSchema": "{\n  \"type\": \"object\",\n  \"properties\": {\n    \"resposta\": {\n      \"type\": \"string\"\n    },\n    \"status\": {\n      \"type\": \"string\",\n      \"enum\": [\n        \"continua\",\n        \"resolvido\",\n        \"humano\"\n      ]\n    },\n    \"motivo\": {\n      \"type\": \"string\"\n    },\n    \"resumo\": {\n      \"type\": \"array\",\n      \"items\": {\n        \"type\": \"string\"\n      },\n      \"maxItems\": 3\n    }\n  },\n  \"required\": [\n    \"resposta\",\n    \"status\"\n  ]\n}",
-        "autoFix": true
-      },
-      "name": "6.1 Ler resposta estruturada",
-      "type": "@n8n/n8n-nodes-langchain.outputParserStructured",
-      "typeVersion": 1.3,
-      "position": [
-        1620,
-        1610
-      ],
-      "id": "064b224c-c24c-4b54-97fb-fe8d3d08fdb9"
     },
     {
       "parameters": {
@@ -3127,7 +3127,7 @@
       "main": [
         [
           {
-            "node": "7.0 Rotear por status",
+            "node": "6.1 Interpretar resposta",
             "type": "main",
             "index": 0
           }
@@ -3202,11 +3202,6 @@
             "node": "6.1 Responder cliente",
             "type": "ai_languageModel",
             "index": 0
-          },
-          {
-            "node": "6.1 Ler resposta estruturada",
-            "type": "ai_languageModel",
-            "index": 0
           }
         ]
       ]
@@ -3217,17 +3212,6 @@
           {
             "node": "6.1 Responder cliente",
             "type": "ai_memory",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "6.1 Ler resposta estruturada": {
-      "ai_outputParser": [
-        [
-          {
-            "node": "6.1 Responder cliente",
-            "type": "ai_outputParser",
             "index": 0
           }
         ]
@@ -3326,6 +3310,17 @@
         [
           {
             "node": "7.2 Encerrar conversa",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "6.1 Interpretar resposta": {
+      "main": [
+        [
+          {
+            "node": "7.0 Rotear por status",
             "type": "main",
             "index": 0
           }

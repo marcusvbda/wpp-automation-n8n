@@ -51,6 +51,25 @@ Escopo da v1: atender **somente números que não estão na agenda do celular**,
 
 `FERIADOS` inicial: `2026-10-12,2026-11-02,2026-11-15,2026-11-20,2026-12-25,2027-01-01` (nacionais; adicionar feriados locais da cidade do parque).
 
+### 1.3 O que o bot precisa saber sobre o parque (conteúdo mínimo de `FATOS_DO_PARQUE`)
+
+Regra do dono: o bot não pode inventar nada que não exista no parque. Por isso `FATOS_DO_PARQUE` deve conter, no mínimo, os fatos abaixo (o texto final é escrito no valor da tabela, não aqui). Fora deste conteúdo e das tools de preço e horário, o bot não afirma nada sobre o parque (regra 0.5).
+
+- **O que é:** playground indoor, dentro do Shopping Cidade Maringá.
+- **Endereço:** Av. Tuiuti, 710 - Gleba Patrimônio, Maringá - PR, 87043-720.
+- **Atrações** (site, "mais de 10 atrações"): Arena de Camas Elásticas, Guerreiro Ninja, Parede de Escalada, Desafio Radical, Pula-Pula, Salão de Festas, Bar e Petiscaria (há mais atrações no site que não aparecem na imagem; o bot só cita as listadas aqui).
+- **Bar para os pais** que esperam os filhos brincarem: tem chopp e alguns petiscos. **Cardápio e preços do bar só no local:** se o cliente perguntar, o bot diz isso, não cita itens nem valores e **não** faz handoff por causa disso.
+- **Salão de festas:** pode ser alugado para festas. Qualquer pedido de festa vai para atendente humana (regra 4 da persona, inalterada); o bot não informa preço nem detalha o pacote.
+- **Preços e horários que aparecem na imagem do site são ignorados:** só valem os que vêm das tools `consultar_passaportes` e `consultar_horarios`.
+
+![Detalhes do parque no Google (tipo de serviço, localização, endereço)](images/google-business-details.png)
+
+Vinculante nesta imagem: nome do shopping e endereço. O telefone e o horário que aparecem nela não entram na spec nem em `FATOS_DO_PARQUE` (horário vem da tool).
+
+![Página inicial do site do parque](images/site-landing-page.png)
+
+Vinculante nesta imagem: a lista de atrações, o bar e petiscaria e o salão de festas como contexto do que existe no parque. **Não vinculante:** todos os preços e horários dela.
+
 ## 2. Bloco ENTRADA E FILTROS
 
 - **2.1 WAHA Trigger:** usar **somente o evento `message.any`** (traz mensagens recebidas e enviadas). Não ligar `message` junto, senão duplica.
@@ -109,8 +128,17 @@ Uma conversa termina de três formas:
 | Como termina | O que acontece |
 |---|---|
 | **Inatividade** | `conv` expira após `MEMORIA_TTL_HORAS` sem mensagens. Nada é enviado. |
-| **Dúvidas resolvidas** | o agente devolve `status = resolvido` (cliente agradeceu ou disse que era só isso). Envia despedida curta, apaga `conv`. **Sem pausa.** |
-| **Precisa de humano** | o agente devolve `status = humano` (ou mídia/erro). O bot **para de responder** (pausa), avisa o grupo (bloco 7) e apaga `conv`. |
+| **Dúvidas resolvidas** | o cliente confirma que a dúvida foi resolvida (ver confirmação abaixo) e o agente devolve `status = resolvido`. Envia mensagem de finalização, apaga `conv`. **Sem pausa.** |
+| **Precisa de humano** | o agente devolve `status = humano` (ou mídia/erro, ou o cliente diz que a dúvida **não** foi resolvida). O bot **para de responder** (pausa), avisa o grupo (bloco 7) e apaga `conv`. |
+
+**Confirmação de encerramento (regra do dono, 2026-10-13).** No fim do atendimento o bot **pergunta** se a dúvida do cliente foi resolvida:
+
+1. Quando o bot já respondeu o que foi perguntado e não há pergunta pendente, a resposta termina com a pergunta de confirmação. O `status` dessa resposta é `continua`.
+2. Cliente confirma que resolveu (sim, "era só isso", "obrigado" em resposta à pergunta) → `status = resolvido`, mensagem de finalização, `conv` apagada, **sem pausa e sem aviso no grupo**.
+3. Cliente diz que **não** resolveu → `status = humano` (handoff do bloco 7, com pausa).
+4. Cliente responde com outra pergunta em vez de sim/não → o bot responde normalmente e volta a perguntar no fim.
+5. Se o próprio cliente encerra de forma explícita antes de ser perguntado ("era só isso, obrigado"), isso conta como confirmação: vai direto para `resolvido`, sem perguntar de novo.
+6. O bot nunca devolve `resolvido` na mesma resposta em que informa preço ou horário.
 
 ### 5.2 Contexto (Code node, sem chamada de API)
 
@@ -148,7 +176,7 @@ Caso de teste do dia da spec: 12/10/2026 é segunda e feriado (Dia das Crianças
 `status` aceita só três valores:
 
 - `continua`: responder normalmente; a conversa segue.
-- `resolvido`: as dúvidas foram atendidas; `resposta` é uma despedida curta.
+- `resolvido`: o cliente confirmou que a dúvida foi resolvida (seção 5.1); `resposta` é a mensagem de finalização, curta.
 - `humano`: precisa de atendente; `resposta` avisa o cliente, `motivo` é curto e `resumo` tem até 3 linhas (o que o cliente perguntou e onde parou).
 
 - **Tools (HTTP Request Tool, cada uma com `Authorization: Bearer {{ $('CONFIG').item.json.SITE_API_TOKEN }}`):**
@@ -174,7 +202,7 @@ Resposta: `{ "data": [...], "pagination": { page, perPage, total, totalPages } }
 Depois do agente, desviar por `status`:
 
 - **`continua`:** Stop Typing, Send Text com `resposta`. Registrar o id enviado em `bot-msg:{id}` (fallback do bloco 3).
-- **`resolvido`:** Stop Typing, Send Text com `resposta` (despedida), apagar `conv:{chatId}`. Sem pausa, sem aviso no grupo.
+- **`resolvido`:** Stop Typing, Send Text com `resposta` (mensagem de finalização), apagar `conv:{chatId}`. Sem pausa (o bot não entra em standby), sem aviso no grupo.
 - **`humano`** (também vindo do bloco 2.3 e dos erros), nesta ordem:
   1. Send Text ao cliente com `resposta` (ou `MSG_HANDOFF_CLIENTE`).
   2. Redis Set `pausa:{chatId}` com TTL `PAUSA_HORAS`: **o bot para de responder esse chat.**
@@ -219,7 +247,15 @@ Formatar o telefone a partir do `chatId` (remover o sufixo, aplicar `+55 DD NNNN
 7. **Número desconhecido** → bot atende. **Número salvo na agenda** → bot ignora (sem resposta, sem pausa, sem aviso no grupo).
 8. Em `MODO_TESTE`, número da allowlist salvo na agenda → bot atende (pula o filtro de contato).
 9. Consulta de contato falha → mensagem ignorada e registrada no log.
-10. Cliente diz "era só isso, obrigado" → `resolvido`: despedida, `conv` apagada, **sem pausa**; mensagem nova horas depois → o bot se apresenta de novo.
+10. Cliente diz "era só isso, obrigado" → `resolvido`: mensagem de finalização, `conv` apagada, **sem pausa**; mensagem nova horas depois → o bot se apresenta de novo.
+18. Bot informa um preço ou horário → a resposta termina perguntando se a dúvida foi resolvida, com `status = continua` (nunca `resolvido` nessa mesma resposta).
+19. Após a pergunta de confirmação, cliente responde "sim, resolvido" → `resolvido`: mensagem de finalização, `conv` apagada, **sem pausa e sem aviso no grupo**; nova mensagem logo em seguida é atendida pelo bot em conversa nova.
+20. Após a pergunta de confirmação, cliente responde "não" ou "não resolveu" → `humano`: handoff do bloco 7, pausa em `pausa:{chatId}` e aviso no grupo.
+21. Após a pergunta de confirmação, cliente faz outra pergunta → o bot responde e volta a perguntar no fim; sem handoff e sem encerrar.
+22. "O que tem no parque?" → o bot cita só as atrações de `FATOS_DO_PARQUE` (seção 1.3), sem inventar outras e sem preço/horário que não venha das tools.
+23. "Tem bar? Qual o cardápio e os preços?" → o bot confirma que há bar para os pais, com chopp e alguns petiscos, diz que cardápio e preços só no local, sem citar itens ou valores e **sem handoff**.
+24. "Posso alugar o salão pra uma festa?" → o bot confirma que o salão pode ser alugado e vai para `humano`, sem informar preço de festa.
+25. "Onde fica o parque?" → o bot responde que é um playground indoor no Shopping Cidade Maringá, com o endereço da seção 1.3.
 11. Silêncio por `MEMORIA_TTL_HORAS` → a próxima mensagem inicia conversa nova.
 12. Handoff → aviso no grupo com nome, link e resumo; o bot para de responder esse chat; quando a pausa expira, volta em conversa nova.
 13. Atendente digita no celular → chat pausa; mensagem do bot via API **não** pausa.
@@ -259,6 +295,13 @@ Deviation: **persona (seção 1.2 e Anexo A).** A pedido do dono, o Dry conversa
 Deviation: **valores e convenções.** `WAHA_SESSION = "Default"` (D maiúsculo, nome real da sessão). Expressões usam `.first()` em vez de `.item`. Identificadores, nomes de nodes e chaves em português por decisão do dono (exceção à regra de inglês do `CLAUDE.md`). Todos os workflows têm `errorWorkflow` `FF0x666oa1bfHLDI`, então uma falha dentro de um subworkflow pode gerar dois alertas (no sub e no principal). O hook global do WAHA (`WHATSAPP_HOOK_URL`, evento `message.any`) aponta para o gatilho do workflow principal.
 
 Deviation: **teste de aceite (seção 9).** Confirmados ao vivo em 2026-10-13, com número de teste: 2 (feriado 12/10 → `weekendPrice`, 12h às 20h) e 13 (mensagem do próprio bot não pausa). O restante da lista está no checklist da fase 12 do `plan.md`.
+
+Pendente de implementação (mudança de spec de 2026-10-13, ainda não refletida no código): (a) `FATOS_DO_PARQUE` deve passar a ter o conteúdo da seção 1.3; (b) `PERSONA_E_REGRAS` deve incluir a pergunta de confirmação de encerramento da seção 5.1 (a regra atual de `resolvido` só espera o cliente encerrar sozinho); (c) a mensagem de finalização e a pergunta de confirmação são redigidas pelo modelo seguindo a persona, não há campo novo em `INSTRUCOES`.
+
+Decisões em aberto:
+
+- **OD1 — regras de acompanhante e descontos do site.** A imagem do site traz regras que não são preço nem horário e, portanto, podem ser úteis ao bot, mas o texto da imagem está pequeno. Leitura provisória: crianças de 1 a 4 anos devem ir com responsável maior de 18 anos, e o acompanhante não paga (1 por criança); PNE tem acompanhante isento (1 por pessoa); crianças a partir de 5 anos não precisam de acompanhante, e quem entrar na área de brinquedos paga a taxa de acompanhante do tempo escolhido; criança de 0 a 1 ano que use os brinquedos e PNE têm 50% de desconto; a partir de 1 ano paga o valor integral. · Opções: (a) dono confirma o texto e ele entra em `FATOS_DO_PARQUE`; (b) bot não fala de acompanhante/desconto e encaminha ao humano · Recomendação: (a), com o dono revisando a leitura acima, porque descontos são regra de valor e o bot não pode errá-los. Até lá, fica valendo (b).
+- **OD2 — itens do bar.** O dono informou chopp e alguns petiscos; a imagem do site também cita bebidas e café. · Opções: (a) só chopp e petiscos · (b) bebidas, chopp, petiscos e café · Recomendação: (a) até o dono confirmar; o bot diz "cardápio só no local".
 
 ## Anexo A — rascunho de `PERSONA_E_REGRAS`
 

@@ -18,7 +18,7 @@ ACs 18–21 rewritten, 26–32 new). Everything else stays untouched.
 | 1     | Installer defaults: new persona closing rules + two new columns     | n8n-workflows | none       | S    | DONE |
 | 2     | Agent parser passes `aguarda_cliente`                               | n8n-workflows | none       | S    | DONE |
 | 3     | New subworkflow `[chatbot] Divercity - Confirmação`                 | n8n-workflows | none       | S    | DONE |
-| 4     | Wire the timer: start after `continua`, cancel on customer message  | n8n-workflows | 2, 3       | S    | PENDING |
+| 4     | Wire the timer: start after `continua`, cancel on customer message  | n8n-workflows | 2, 3       | S    | DONE |
 | 5     | Deploy the workflow changes to the live n8n (feature still inert)   | n8n-workflows | 2, 3, 4    | S    | PENDING |
 | 6     | Live Data Tables: add columns, set values, new persona (feature on) | n8n-workflows | 1, 5       | S    | PENDING |
 | 7     | Verification and report                                             | n8n-workflows | 1–6        | S    | PENDING |
@@ -242,7 +242,8 @@ called by anything yet.
 
 ### Phase 4 — Wire the timer: start after `continua`, cancel on customer message
 
-Status: PENDING
+Status: DONE
+Evidence: 2026-10-13. Reply sub: `7.1 Registrar msg do bot → 7.1 Agendar confirmação? (true) → 7.1 Armar confirmação → 7.1 Montar dados da confirmação → 7.1 Iniciar confirmação` (Execute Workflow `cF9mQ2xT7vLp4Wd8`, `waitForSubWorkflow: false`); one extra Set node (`7.1 Montar dados da confirmação`) builds the exact `{chatId, token, CONFIG, INSTRUCOES}` item; token expression identical in the Redis value and the Set (normalized `7.1 Enviar resposta` id). Debounce: `4.1 Guardar texto no buffer → 4.1 Cancelar confirmação → 4.1 Marcar última mensagem`; no downstream node used `$json` from the push. `Number(null) > 0` is false, so the feature stays inert until Phase 6. `jq empty workflows/*.json` OK; `docker compose config -q` OK; n8n-mcp `validate_node` on the new delete and Execute Workflow nodes OK. code-reviewer: APPROVED (non-blocking: an empty WAHA id would arm an empty token; the token IIFE is duplicated in two nodes).
 Role: n8n-workflows · Depends on: 2, 3 · Covers: AC 21, 26–28, 32 · Size: S
 Spec: 5.1 rules 3–5, 9; 7 (`continua`)
 

@@ -912,6 +912,121 @@
           "name": "Redis account"
         }
       }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 3
+          },
+          "conditions": [
+            {
+              "id": "b7c1a4e2-5d31-4f0a-9a6e-1c2d3e4f5a01",
+              "leftValue": "={{ $('7.0 Rotear por status').first().json.output.aguarda_cliente === false }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "b7c1a4e2-5d31-4f0a-9a6e-1c2d3e4f5a02",
+              "leftValue": "={{ Number($('CONFIG').first().json.CONFIRMACAO_MINUTOS) > 0 }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            },
+            {
+              "id": "b7c1a4e2-5d31-4f0a-9a6e-1c2d3e4f5a03",
+              "leftValue": "={{ String($('INSTRUCOES').first().json.MSG_CONFIRMACAO ?? '').trim() !== '' }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "c3d9e5f1-7a42-4b68-8e10-2f3a4b5c6d11",
+      "name": "7.1 Agendar confirmação?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.3,
+      "position": [
+        2176,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "set",
+        "key": "={{ 'confirmar:' + $('7.0 Dados recebidos').first().json.chatId }}",
+        "value": "={{ String((() => { const r = $('7.1 Enviar resposta').first().json.id; return typeof r === 'string' ? r : (r?._serialized ?? r?.id ?? ''); })()).split('_').pop() }}",
+        "keyType": "string",
+        "expire": true,
+        "ttl": "={{ Math.round(Number($('CONFIG').first().json.CONFIRMACAO_MINUTOS) * 60) + 300 }}"
+      },
+      "id": "c3d9e5f1-7a42-4b68-8e10-2f3a4b5c6d12",
+      "name": "7.1 Armar confirmação",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        2400,
+        272
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ { chatId: $('7.0 Dados recebidos').first().json.chatId, token: String((() => { const r = $('7.1 Enviar resposta').first().json.id; return typeof r === 'string' ? r : (r?._serialized ?? r?.id ?? ''); })()).split('_').pop(), CONFIG: $('CONFIG').first().json, INSTRUCOES: $('INSTRUCOES').first().json } }}",
+        "options": {}
+      },
+      "id": "c3d9e5f1-7a42-4b68-8e10-2f3a4b5c6d13",
+      "name": "7.1 Montar dados da confirmação",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        2624,
+        272
+      ]
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "cF9mQ2xT7vLp4Wd8",
+          "mode": "list",
+          "cachedResultName": "[chatbot] Divercity - Confirmação",
+          "cachedResultUrl": "/workflow/cF9mQ2xT7vLp4Wd8"
+        },
+        "options": {
+          "waitForSubWorkflow": false
+        }
+      },
+      "id": "c3d9e5f1-7a42-4b68-8e10-2f3a4b5c6d14",
+      "name": "7.1 Iniciar confirmação",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        2848,
+        272
+      ]
     }
   ],
   "connections": {
@@ -1219,6 +1334,51 @@
         [
           {
             "node": "7.0 Rotear por status",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.1 Registrar msg do bot": {
+      "main": [
+        [
+          {
+            "node": "7.1 Agendar confirmação?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.1 Agendar confirmação?": {
+      "main": [
+        [
+          {
+            "node": "7.1 Armar confirmação",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "7.1 Armar confirmação": {
+      "main": [
+        [
+          {
+            "node": "7.1 Montar dados da confirmação",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "7.1 Montar dados da confirmação": {
+      "main": [
+        [
+          {
+            "node": "7.1 Iniciar confirmação",
             "type": "main",
             "index": 0
           }

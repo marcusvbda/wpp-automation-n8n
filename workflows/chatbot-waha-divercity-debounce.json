@@ -402,6 +402,26 @@
         2912,
         112
       ]
+    },
+    {
+      "parameters": {
+        "operation": "delete",
+        "key": "={{ 'confirmar:' + $('4.0 Mensagem recebida').first().json.chatId }}"
+      },
+      "id": "a4f10020-7c21-4b0e-9a11-0d4e5f6a7b20",
+      "name": "4.1 Cancelar confirmação",
+      "type": "n8n-nodes-base.redis",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        400
+      ],
+      "credentials": {
+        "redis": {
+          "id": "rD7k2Mx9QpL4vWn3",
+          "name": "Redis account"
+        }
+      }
     }
   ],
   "connections": {
@@ -409,7 +429,7 @@
       "main": [
         [
           {
-            "node": "4.1 Marcar última mensagem",
+            "node": "4.1 Cancelar confirmação",
             "type": "main",
             "index": 0
           }
@@ -600,6 +620,17 @@
         [
           {
             "node": "4.1 Guardar texto no buffer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "4.1 Cancelar confirmação": {
+      "main": [
+        [
+          {
+            "node": "4.1 Marcar última mensagem",
             "type": "main",
             "index": 0
           }

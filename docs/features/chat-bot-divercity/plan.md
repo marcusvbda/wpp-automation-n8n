@@ -20,7 +20,7 @@ ACs 18–21 rewritten, 26–32 new). Everything else stays untouched.
 | 3     | New subworkflow `[chatbot] Divercity - Confirmação`                 | n8n-workflows | none       | S    | DONE |
 | 4     | Wire the timer: start after `continua`, cancel on customer message  | n8n-workflows | 2, 3       | S    | DONE |
 | 5     | Deploy the workflow changes to the live n8n (feature still inert)   | n8n-workflows | 2, 3, 4    | S    | DONE |
-| 6     | Live Data Tables: add columns, set values, new persona (feature on) | n8n-workflows | 1, 5       | S    | IN_PROGRESS |
+| 6     | Live Data Tables: add columns, set values, new persona (feature on) | n8n-workflows | 1, 5       | S    | DONE |
 | 7     | Verification and report                                             | n8n-workflows | 1–6        | S    | PENDING |
 
 ## Audit — 2026-10-13
@@ -307,7 +307,8 @@ the live tables have no `CONFIRMACAO_MINUTOS` yet, nothing new is sent.
 
 ### Phase 6 — Live Data Tables: add columns, set values, new persona (feature on)
 
-Status: PENDING
+Status: DONE
+Evidence: 2026-10-13, owner approved in-session (D2 = A). n8n-mcp `addColumn` failed (`NOT_CONFIGURED`: no `N8N_MCP_ACCESS_TOKEN`), so the **owner added both columns in the Data tables UI** (`MSG_CONFIRMACAO` first landed in `config` by mistake; the owner moved it to `instrucoes` and removed the stray column). The owner also set `CONFIRMACAO_MINUTOS = 3` by hand; that value was kept (owner edits win), not overwritten with 2. Pre-write: live `PERSONA_E_REGRAS` byte-identical to the pre-plan default (`2bb5b97`), `MSG_CONFIRMACAO` null. Write: `updateRows` filter `id = 1` on `chatbot_divercity_instrucoes` with only `PERSONA_E_REGRAS` + `MSG_CONFIRMACAO` (applied directly, without the planned dryRun; the before-state had been read from the DB). Re-read from Postgres: both equal the installer defaults (cmp); `FATOS_DO_PARQUE`, `AVISOS_DE_HOJE`, `FERIADOS`, `MSG_HANDOFF_CLIENTE`, `MSG_MIDIA` unchanged (cmp vs defaults); config row: `CONFIRMACAO_MINUTOS` 3, `PAUSA_HORAS` 2, `MODO_TESTE` true. No workflow imported, published or unpublished. Feature is on.
 Role: n8n-workflows · Depends on: 1, 5 · Covers: AC 10, 18–21, 26, 28, 32 · Size: S
 Spec: 1.1, 1.2, 5.1, 11 (Data Tables deviation)
 

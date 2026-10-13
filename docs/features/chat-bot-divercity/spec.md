@@ -33,7 +33,8 @@ Escopo da v1: atender **somente números que não estão na agenda do celular**,
 | `DEBOUNCE_SEGUNDOS` | `5` | junta mensagens em sequência |
 | `MEMORIA_TTL_HORAS` | `6` | sem mensagens por esse tempo = conversa encerrada por inatividade |
 | `MEMORIA_MENSAGENS` | `10` | janela da memória por conversa |
-| `PAUSA_HORAS` | `12` | quanto tempo o bot fica calado após handoff (renova a cada mensagem da atendente) |
+| `PAUSA_HORAS` | `2` | quanto tempo o bot fica calado após handoff (renova a cada mensagem da atendente) |
+| `CONFIRMACAO_MINUTOS` | `2` | silêncio do cliente, depois de uma resposta do bot, antes de enviar `MSG_CONFIRMACAO` (seção 5.1). Aceita fração (ex.: `0.5`) |
 | `MAX_IDADE_MSG_SEGUNDOS` | `300` | ignora mensagens mais velhas (replay após reconexão) |
 | `TIMEZONE` | `America/Sao_Paulo` | |
 | `DIAS_CALENDARIO` | `21` | tamanho do calendário injetado no prompt |
@@ -48,6 +49,7 @@ Escopo da v1: atender **somente números que não estão na agenda do celular**,
 | `FERIADOS` | datas `YYYY-MM-DD` separadas por vírgula (valores iniciais abaixo) |
 | `MSG_HANDOFF_CLIENTE` | "Vou chamar uma das nossas atendentes pra te ajudar com isso. Ela te responde por aqui em breve." |
 | `MSG_MIDIA` | "Por enquanto eu só consigo ler mensagens de texto. Vou chamar uma atendente pra te ajudar." |
+| `MSG_CONFIRMACAO` | "Consegui te ajudar com o que você precisava? Se ficou alguma dúvida, é só me falar 😊" (pt-BR; texto fixo, enviado como está, seção 5.1) |
 
 `FERIADOS` inicial: `2026-10-12,2026-11-02,2026-11-15,2026-11-20,2026-12-25,2027-01-01` (nacionais; adicionar feriados locais da cidade do parque).
 
@@ -128,17 +130,24 @@ Uma conversa termina de três formas:
 | Como termina | O que acontece |
 |---|---|
 | **Inatividade** | `conv` expira após `MEMORIA_TTL_HORAS` sem mensagens. Nada é enviado. |
-| **Dúvidas resolvidas** | o cliente confirma que a dúvida foi resolvida (ver confirmação abaixo) e o agente devolve `status = resolvido`. Envia mensagem de finalização, apaga `conv`. **Sem pausa.** |
+| **Dúvidas resolvidas** | o cliente confirma que a dúvida foi resolvida (ver confirmação abaixo) e o agente devolve `status = resolvido`. Envia mensagem de finalização, apaga `conv`. **Sem pausa:** qualquer mensagem nova, a qualquer hora, começa uma conversa nova. |
 | **Precisa de humano** | o agente devolve `status = humano` (ou mídia/erro, ou o cliente diz que a dúvida **não** foi resolvida). O bot **para de responder** (pausa), avisa o grupo (bloco 7) e apaga `conv`. |
 
-**Confirmação de encerramento (regra do dono, 2026-10-13).** No fim do atendimento o bot **pergunta** se a dúvida do cliente foi resolvida:
+**Confirmação de encerramento por silêncio (regra do dono, 2026-10-13, substitui a versão anterior em que a própria resposta terminava com "Resolveu sua dúvida?").** O bot responde normalmente, sem perguntar no fim da resposta se resolveu (o dono achou rude). A pergunta só vem depois, se o cliente ficar em silêncio:
 
-1. Quando o bot já respondeu o que foi perguntado e não há pergunta pendente, a resposta termina com a pergunta de confirmação. O `status` dessa resposta é `continua`.
-2. Cliente confirma que resolveu (sim, "era só isso", "obrigado" em resposta à pergunta) → `status = resolvido`, mensagem de finalização, `conv` apagada, **sem pausa e sem aviso no grupo**.
-3. Cliente diz que **não** resolveu → `status = humano` (handoff do bloco 7, com pausa).
-4. Cliente responde com outra pergunta em vez de sim/não → o bot responde normalmente e volta a perguntar no fim.
-5. Se o próprio cliente encerra de forma explícita antes de ser perguntado ("era só isso, obrigado"), isso conta como confirmação: vai direto para `resolvido`, sem perguntar de novo.
-6. O bot nunca devolve `resolvido` na mesma resposta em que informa preço ou horário.
+1. A resposta do bot **nunca** termina com pergunta de confirmação ("Isso resolve a sua dúvida?", "Resolveu?" ou parecida). Ela só responde o que foi perguntado.
+2. Toda resposta com `status = continua` informa também se o bot ficou **esperando um dado do cliente** para continuar (ex.: "Qual o dia da visita?", "Qual duração?"): campo `aguarda_cliente` (seção 6).
+3. Depois de enviar uma resposta `continua` com `aguarda_cliente = false`, o bot espera `CONFIRMACAO_MINUTOS`. Se nesse tempo **nenhuma** mensagem nova chegou do cliente (nem está sendo agrupada no debounce), o chat **não** está pausado e a conversa (`conv:{chatId}`) ainda existe, o bot envia `MSG_CONFIRMACAO` (texto fixo de `INSTRUCOES`, sem passar pelo modelo).
+4. Com `aguarda_cliente = true`, o bot **não** envia `MSG_CONFIRMACAO`; espera o cliente.
+5. `MSG_CONFIRMACAO` é enviada no máximo **uma vez por resposta do bot**. Se o cliente mandar mensagem, a contagem recomeça a partir da próxima resposta `continua`.
+6. `MSG_CONFIRMACAO` entra na memória da conversa como mensagem do bot, para o agente saber, na próxima mensagem do cliente, que perguntou se resolveu.
+7. Cliente confirma que resolveu ("sim", "resolveu", "era só isso", "obrigado") → `status = resolvido`: mensagem de finalização curta (redigida pelo modelo), `conv` apagada, **sem pausa e sem aviso no grupo**. Qualquer mensagem nova, a qualquer hora, começa uma conversa nova.
+8. Cliente diz que **não** resolveu → `status = humano` (handoff do bloco 7, com pausa e aviso no grupo).
+9. Cliente responde com outra pergunta em vez de sim/não → o bot responde normalmente (`continua`) e a regra 3 vale de novo para essa resposta.
+10. Cliente não responde a `MSG_CONFIRMACAO` → nada mais é enviado. A conversa termina por inatividade (`MEMORIA_TTL_HORAS`), sem handoff e sem pausa.
+11. Se o próprio cliente encerra de forma explícita antes de ser perguntado ("era só isso, obrigado"), isso conta como confirmação: vai direto para `resolvido`, e nenhuma `MSG_CONFIRMACAO` é enviada depois.
+12. O bot nunca devolve `resolvido` na mesma resposta em que informa preço ou horário.
+13. Falha do gateway ao enviar `MSG_CONFIRMACAO`: registrar no log, sem nova tentativa e sem handoff.
 
 ### 5.2 Contexto (Code node, sem chamada de API)
 
@@ -168,10 +177,13 @@ Caso de teste do dia da spec: 12/10/2026 é segunda e feriado (Dia das Crianças
 {
   "resposta": "texto para o cliente",
   "status": "continua",
+  "aguarda_cliente": false,
   "motivo": "",
   "resumo": ["linha 1", "linha 2", "linha 3"]
 }
 ```
+
+`aguarda_cliente` (boolean, só relevante com `continua`): `true` quando a resposta termina pedindo ao cliente um dado necessário para continuar (dia da visita, duração...); `false` quando o bot já respondeu o que foi perguntado. Ausente ou inválido conta como `true` (na dúvida, o bot não envia `MSG_CONFIRMACAO`).
 
 `status` aceita só três valores:
 
@@ -201,7 +213,7 @@ Resposta: `{ "data": [...], "pagination": { page, perPage, total, totalPages } }
 
 Depois do agente, desviar por `status`:
 
-- **`continua`:** Stop Typing, Send Text com `resposta`. Registrar o id enviado em `bot-msg:{id}` (fallback do bloco 3).
+- **`continua`:** Stop Typing, Send Text com `resposta`. Registrar o id enviado em `bot-msg:{id}` (fallback do bloco 3). Se `aguarda_cliente = false`, iniciar a espera da confirmação por silêncio (seção 5.1, regras 3 a 6); `MSG_CONFIRMACAO` também é registrada em `bot-msg:{id}`, para não pausar o chat.
 - **`resolvido`:** Stop Typing, Send Text com `resposta` (mensagem de finalização), apagar `conv:{chatId}`. Sem pausa (o bot não entra em standby), sem aviso no grupo.
 - **`humano`** (também vindo do bloco 2.3 e dos erros), nesta ordem:
   1. Send Text ao cliente com `resposta` (ou `MSG_HANDOFF_CLIENTE`).
@@ -248,10 +260,17 @@ Formatar o telefone a partir do `chatId` (remover o sufixo, aplicar `+55 DD NNNN
 8. Em `MODO_TESTE`, número da allowlist salvo na agenda → bot atende (pula o filtro de contato).
 9. Consulta de contato falha → mensagem ignorada e registrada no log.
 10. Cliente diz "era só isso, obrigado" → `resolvido`: mensagem de finalização, `conv` apagada, **sem pausa**; mensagem nova horas depois → o bot se apresenta de novo.
-18. Bot informa um preço ou horário → a resposta termina perguntando se a dúvida foi resolvida, com `status = continua` (nunca `resolvido` nessa mesma resposta).
-19. Após a pergunta de confirmação, cliente responde "sim, resolvido" → `resolvido`: mensagem de finalização, `conv` apagada, **sem pausa e sem aviso no grupo**; nova mensagem logo em seguida é atendida pelo bot em conversa nova.
-20. Após a pergunta de confirmação, cliente responde "não" ou "não resolveu" → `humano`: handoff do bloco 7, pausa em `pausa:{chatId}` e aviso no grupo.
-21. Após a pergunta de confirmação, cliente faz outra pergunta → o bot responde e volta a perguntar no fim; sem handoff e sem encerrar.
+18. Bot informa um preço ou horário → a resposta **não** termina com pergunta de confirmação ("Resolveu sua dúvida?" ou parecida), tem `status = continua` e `aguarda_cliente = false` (nunca `resolvido` nessa mesma resposta).
+19. Após `MSG_CONFIRMACAO`, cliente responde "sim, resolvido" → `resolvido`: mensagem de finalização, `conv` apagada, **sem pausa e sem aviso no grupo**; nova mensagem logo em seguida é atendida pelo bot em conversa nova.
+20. Após `MSG_CONFIRMACAO`, cliente responde "não" ou "não resolveu" → `humano`: handoff do bloco 7, pausa em `pausa:{chatId}` e aviso no grupo.
+21. Após `MSG_CONFIRMACAO`, cliente faz outra pergunta → o bot responde sem pergunta de confirmação no fim; sem handoff e sem encerrar; após mais `CONFIRMACAO_MINUTOS` de silêncio, `MSG_CONFIRMACAO` é enviada de novo.
+26. Bot responde um preço e o cliente fica `CONFIRMACAO_MINUTOS` sem escrever → o bot envia exatamente `MSG_CONFIRMACAO`, uma vez só, e o chat **não** fica pausado.
+27. Bot responde um preço e o cliente escreve de novo antes de `CONFIRMACAO_MINUTOS` → `MSG_CONFIRMACAO` não é enviada para aquela resposta.
+28. Bot pergunta "Qual o dia da visita?" (`aguarda_cliente = true`) e o cliente fica `CONFIRMACAO_MINUTOS` sem escrever → nada é enviado.
+29. Cliente não responde a `MSG_CONFIRMACAO` → nenhuma outra mensagem é enviada; após `MEMORIA_TTL_HORAS`, a próxima mensagem começa conversa nova.
+30. Handoff (`humano`) ou `resolvido` antes de `CONFIRMACAO_MINUTOS` → `MSG_CONFIRMACAO` não é enviada.
+31. Atendente digita no celular (chat pausado) antes de `CONFIRMACAO_MINUTOS` → `MSG_CONFIRMACAO` não é enviada.
+32. `CONFIRMACAO_MINUTOS` alterado na Data Table `chatbot_divercity_config` → a próxima resposta do bot usa o novo valor, sem reimportar workflow.
 22. "O que tem no parque?" → o bot cita só as atrações de `FATOS_DO_PARQUE` (seção 1.3), sem inventar outras e sem preço/horário que não venha das tools.
 23. "Tem bar? Qual o cardápio e os preços?" → o bot confirma que há bar para os pais, com chopp e alguns petiscos, diz que cardápio e preços só no local, sem citar itens ou valores e **sem handoff**.
 24. "Posso alugar o salão pra uma festa?" → o bot confirma que o salão pode ser alugado e vai para `humano`, sem informar preço de festa.
@@ -296,7 +315,9 @@ Deviation: **valores e convenções.** `WAHA_SESSION = "Default"` (D maiúsculo,
 
 Deviation: **teste de aceite (seção 9).** Confirmados ao vivo em 2026-10-13, com número de teste: 2 (feriado 12/10 → `weekendPrice`, 12h às 20h) e 13 (mensagem do próprio bot não pausa). O restante da lista está no checklist da fase 12 do `plan.md`.
 
-Pendente de implementação (mudança de spec de 2026-10-13, ainda não refletida no código): (a) `FATOS_DO_PARQUE` deve passar a ter o conteúdo da seção 1.3; (b) `PERSONA_E_REGRAS` deve incluir a pergunta de confirmação de encerramento da seção 5.1 (a regra atual de `resolvido` só espera o cliente encerrar sozinho); (c) a mensagem de finalização e a pergunta de confirmação são redigidas pelo modelo seguindo a persona, não há campo novo em `INSTRUCOES`.
+Implementado em 2026-10-13: `FATOS_DO_PARQUE` com o conteúdo da seção 1.3 e a confirmação de encerramento **dentro da resposta** (seção `ENCERRAMENTO` de `PERSONA_E_REGRAS`).
+
+Pendente de implementação (mudança de spec de 2026-10-13, ainda não refletida no código): a confirmação por silêncio da seção 5.1 substitui a confirmação dentro da resposta. Muda: (a) a seção `ENCERRAMENTO` de `PERSONA_E_REGRAS` (default no `chatbot-waha-divercity-install.json` e valor na Data Table) deixa de mandar perguntar no fim da resposta e passa a pedir `aguarda_cliente` no JSON; (b) colunas novas `CONFIRMACAO_MINUTOS` em `chatbot_divercity_config` e `MSG_CONFIRMACAO` em `chatbot_divercity_instrucoes`; (c) espera e envio de `MSG_CONFIRMACAO` depois de respostas `continua`. A mensagem de finalização (`resolvido`) continua redigida pelo modelo.
 
 Decisões em aberto:
 

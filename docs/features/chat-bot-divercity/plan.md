@@ -16,7 +16,7 @@ ACs 18–21 rewritten, 26–32 new). Everything else stays untouched.
 | Phase | Title                                                               | Role          | Depends on | Size | Status  |
 | ----- | ------------------------------------------------------------------- | ------------- | ---------- | ---- | ------- |
 | 1     | Installer defaults: new persona closing rules + two new columns     | n8n-workflows | none       | S    | DONE |
-| 2     | Agent parser passes `aguarda_cliente`                               | n8n-workflows | none       | S    | IN_PROGRESS |
+| 2     | Agent parser passes `aguarda_cliente`                               | n8n-workflows | none       | S    | DONE |
 | 3     | New subworkflow `[chatbot] Divercity - Confirmação`                 | n8n-workflows | none       | S    | IN_PROGRESS |
 | 4     | Wire the timer: start after `continua`, cancel on customer message  | n8n-workflows | 2, 3       | S    | PENDING |
 | 5     | Deploy the workflow changes to the live n8n (feature still inert)   | n8n-workflows | 2, 3, 4    | S    | PENDING |
@@ -159,7 +159,8 @@ STATUS E FORMATO DE SAÍDA
 
 ### Phase 2 — Agent parser passes `aguarda_cliente`
 
-Status: IN_PROGRESS
+Status: DONE
+Evidence: 2026-10-13. Only the `jsCode` of `6.1 Interpretar resposta` in `workflows/chatbot-waha-divercity-agent.json` changed. Local Node run of the function: explicit false → false; missing field → true; free text → `continua` + true; broken JSON → `VAZIO` + true; `{output:{...false}}` → false. `jq empty workflows/*.json` OK; n8n-mcp `validate_workflow` 0 errors. code-reviewer: APPROVED. Note: the `6.2 Entregar resposta` fallback default has no `aguarda_cliente`; Phase 4 only arms the timer on `=== false`, so undefined is safe.
 Role: n8n-workflows · Depends on: none · Covers: AC 18, 28 · Size: S
 Spec: 5.1 rule 2, 6 (`aguarda_cliente`)
 

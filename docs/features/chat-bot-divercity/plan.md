@@ -17,7 +17,7 @@ tests 18–25. Everything else is built and stays untouched.
 | ----- | ------------------------------------------------------------- | ------------- | ---------- | ---- | ------------ |
 | 1     | `FATOS_DO_PARQUE` default text (section 1.3)                  | n8n-workflows | none       | S    | DONE         |
 | 2     | `PERSONA_E_REGRAS` default text: closing confirmation (5.1)   | n8n-workflows | none       | S    | DONE         |
-| 3     | Apply the new texts to the live Data Table row                | n8n-workflows | 1, 2       | S    | PENDING      |
+| 3     | Apply the new texts to the live Data Table row                | n8n-workflows | 1, 2       | S    | DONE         |
 | 4     | Verification and report                                       | n8n-workflows | 1–3        | S    | PENDING      |
 
 ## Audit — 2026-10-13
@@ -165,7 +165,8 @@ ENCERRAMENTO
 
 ### Phase 3 — Apply the new texts to the live Data Table row
 
-Status: PENDING
+Status: DONE
+Evidence: 2026-10-13, owner approved the diff in-session (D1 = A). Table `chatbot_divercity_instrucoes` (`m3KqByTDF4n2e6vq`), row `id` 1: before the write all six columns were byte-identical to the defaults at `8d03b09` (no hand edits). `updateRows` filter `id = 1` with only `PERSONA_E_REGRAS` + `FATOS_DO_PARQUE`: dryRun matched one row, then applied. Re-read: both columns equal the installer defaults at `4ffac2d`; `AVISOS_DE_HOJE`, `FERIADOS`, `MSG_HANDOFF_CLIENTE`, `MSG_MIDIA` unchanged. No workflow imported, published or unpublished. `jq empty workflows/*.json` OK; `docker compose config -q` OK.
 Role: n8n-workflows · Depends on: 1, 2 · Covers: AC 10, 18–25 (makes them testable) · Size: S
 Spec: 1.2, 11 (Data Tables deviation)
 
